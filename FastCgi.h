@@ -108,7 +108,7 @@ public:
     FastCgiServer(FN_DOACTION fnCallBack);
     virtual ~FastCgiServer();
 
-    bool Start(const string strBindAddr, uint16_t sPort);
+    bool Start(const string strBindAddr, const uint16_t sPort);
     bool Stop();
 
 private:

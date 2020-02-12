@@ -750,14 +750,13 @@ FastCgiServer::~FastCgiServer()
         this_thread::sleep_for(chrono::milliseconds(10));
 }
 
-bool FastCgiServer::Start(const string strBindAddr, uint16_t sPort)
+bool FastCgiServer::Start(const string strBindAddr, const uint16_t sPort)
 {
     m_pSocket = new TcpServer();
 
-    m_pSocket->BindNewConnection(function<void(const vector<TcpSocket*>&)>(bind(&FastCgiServer::OnNewConnection, this, _1)));
+    m_pSocket->BindNewConnection(bind(&FastCgiServer::OnNewConnection, this, _1));
     m_pSocket->BindErrorFunction(bind(&FastCgiServer::OnSocketError, this, _1));
     return m_pSocket->Start(strBindAddr.c_str(), sPort);
-
 }
 
 bool FastCgiServer::Stop()
