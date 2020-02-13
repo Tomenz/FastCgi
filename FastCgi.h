@@ -35,7 +35,7 @@ protected:
 
 class FastCgiClient : public FastCgiBase
 {
-    typedef function<void(const unsigned char*, unsigned short)> FN_OUTPUT;
+    typedef function<void(const unsigned char*, uint16_t)> FN_OUTPUT;
     typedef struct tagRequest
     {
         FN_OUTPUT           fnDataOutput;
