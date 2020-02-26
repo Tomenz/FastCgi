@@ -1031,9 +1031,24 @@ void FastCgiServer::OnSocketError(BaseSocket* const pSocket)
 
 void FastCgiServer::OnSocketCloseing(BaseSocket* const pSocket)
 {
+    OutputDebugString(L"FastCgiClient::OnSocketCloseing enter\r\n");
     m_mxConnections.lock();
     auto itConnection = m_Connections.find(reinterpret_cast<TcpSocket*>(pSocket));
     if (itConnection != end(m_Connections))
+    {
+        for (auto itReq = begin(itConnection->second); itReq != end(itConnection->second); ++itReq)
+        {
+            if (itReq->second.thDoAction.joinable() == true)
+            {
+                thread& thAction = itReq->second.thDoAction;
+                m_mxConnections.unlock();
+                OutputDebugString(L"FastCgiClient::OnSocketCloseing waiting for thread\r\n");
+                thAction.join();
+                m_mxConnections.lock();
+            }
+        }
         m_Connections.erase(itConnection);
+    }
     m_mxConnections.unlock();
+    OutputDebugString(L"FastCgiClient::OnSocketCloseing leaving\r\n");
 }
