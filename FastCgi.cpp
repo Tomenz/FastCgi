@@ -335,10 +335,10 @@ void FastCgiClient::DatenEmpfangen(TcpSocket* const pTcpSocket)
                     if (itReqParam->second.pcvReqEnd != nullptr)
                         itReqParam->second.pcvReqEnd->notify_all();
 //                    OutputDebugString(wstring(L"Request beendet: " + to_wstring(itReqParam->first) + L"\r\n").c_str());
-                }
 
-                m_lstRequest.erase(itReqParam);
-                m_nCountCurRequest--;
+                    m_lstRequest.erase(itReqParam);
+                    m_nCountCurRequest--;
+                }
                 m_mxReqList.unlock();
             }
             else
