@@ -95,10 +95,17 @@ typedef struct {
 
 FastCgiClient::FastCgiClient() noexcept : m_pSocket(nullptr), m_bConnected(false), m_bClosed(false), m_usResquestId(0), m_nCountCurRequest(0), m_hProcess(Null)
 {
+    m_FCGI_MAX_CONNS  = UINT32_MAX;
+    m_FCGI_MAX_REQS   = UINT32_MAX;
+    m_FCGI_MPXS_CONNS = 0;
 }
 
 FastCgiClient::FastCgiClient(const wstring& strProcessPath) noexcept : m_pSocket(nullptr), m_bConnected(false), m_bClosed(false), m_usResquestId(0), m_nCountCurRequest(0), m_strProcessPath(strProcessPath), m_hProcess(Null)
 {
+    m_FCGI_MAX_CONNS = UINT32_MAX;
+    m_FCGI_MAX_REQS = UINT32_MAX;
+    m_FCGI_MPXS_CONNS = 0;
+
     StartFcgiProcess();
 }
 
