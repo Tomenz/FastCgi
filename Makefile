@@ -2,8 +2,11 @@
 # ACHTUNG unbedingt TABS benutzen beim einrücken
 
 CC = g++
-#CFLAGS = -ggdb -w -pthread
-CFLAGS = -Wall -O3 -std=c++14 -pthread -ffunction-sections -fdata-sections
+ifeq ($(DEBUG), yes)
+CFLAGS = -ggdb -pthread
+else
+CFLAGS = -Wall -O3 -pthread -ffunction-sections -fdata-sections
+endif
 INC_PATH = -I ..
 TARGET = libfastcgi.a
 
