@@ -494,6 +494,15 @@ bool FastCgiClient::AbortRequest(uint16_t nRequestId)
 
     m_pSocket->Write(pHeader, sizeof(FCGI_Header));
 
+    m_mxReqList.lock();
+    auto itReqParam = m_lstRequest.find(nRequestId);
+    if (itReqParam != end(m_lstRequest))
+    {
+        m_lstRequest.erase(itReqParam);
+        m_nCountCurRequest--;
+    }
+    m_mxReqList.unlock();
+
     return true;
 }
 
