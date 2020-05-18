@@ -42,6 +42,7 @@ class FastCgiClient : public FastCgiBase
         condition_variable* pcvReqEnd;
         bool*               pbReqEnde;
         string              strRecBuf;
+        bool                bIsAbort;
     }REQPARAM;
     typedef map<uint16_t, REQPARAM> REQLIST;
 

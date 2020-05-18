@@ -135,9 +135,9 @@ FastCgiClient::~FastCgiClient() noexcept
     {
         if (m_bClosed == false)
         {
-            m_pSocket->BindFuncBytesReceived(nullptr);
-            m_pSocket->BindErrorFunction(nullptr);
-            m_pSocket->BindCloseFunction(nullptr);
+            m_pSocket->BindFuncBytesReceived(static_cast<function<void(TcpSocket* const)>>(nullptr));
+            m_pSocket->BindErrorFunction(static_cast<function<void(BaseSocket* const)>>(nullptr));
+            m_pSocket->BindCloseFunction(static_cast<function<void(BaseSocket* const)>>(nullptr));
             m_pSocket->Close();
         }
         m_pSocket->Delete();
@@ -161,18 +161,18 @@ uint32_t FastCgiClient::Connect(const string strIpServer, uint16_t usPort, bool 
     //OutputDebugString(L"FastCgiClient::Connect\r\n");
     if (m_pSocket != nullptr)
     {
-        m_pSocket->BindFuncBytesReceived(nullptr);
-        m_pSocket->BindErrorFunction(nullptr);
-        m_pSocket->BindCloseFunction(nullptr);
+        m_pSocket->BindFuncBytesReceived(static_cast<function<void(TcpSocket* const)>>(nullptr));
+        m_pSocket->BindErrorFunction(static_cast<function<void(BaseSocket* const)>>(nullptr));
+        m_pSocket->BindCloseFunction(static_cast<function<void(BaseSocket* const)>>(nullptr));
         m_pSocket->Delete();
     }
 
     m_pSocket = new TcpSocket();
 
-    m_pSocket->BindFuncConEstablished(bind(&FastCgiClient::Connected, this, _1));
-    m_pSocket->BindFuncBytesReceived(bind(&FastCgiClient::DatenEmpfangen, this, _1));
-    m_pSocket->BindErrorFunction(bind(&FastCgiClient::SocketError, this, _1));
-    m_pSocket->BindCloseFunction(bind(&FastCgiClient::SocketCloseing, this, _1));
+    m_pSocket->BindFuncConEstablished(static_cast<function<void(TcpSocket* const)>>(bind(&FastCgiClient::Connected, this, _1)));
+    m_pSocket->BindFuncBytesReceived(static_cast<function<void(TcpSocket* const)>>(bind(&FastCgiClient::DatenEmpfangen, this, _1)));
+    m_pSocket->BindErrorFunction(static_cast<function<void(BaseSocket* const)>>(bind(&FastCgiClient::SocketError, this, _1)));
+    m_pSocket->BindCloseFunction(static_cast<function<void(BaseSocket* const)>>(bind(&FastCgiClient::SocketCloseing, this, _1)));
 
     m_bConnected = false;
 
@@ -211,9 +211,9 @@ uint32_t FastCgiClient::Connect(const string strIpServer, uint16_t usPort, bool 
             if (m_cvConnected.wait_for(lock, chrono::milliseconds(500), [&]() { return m_bConnected; }) == false)   // Timeout
                 return 0;
 
-            m_pSocket->BindFuncBytesReceived(nullptr);
-            m_pSocket->BindErrorFunction(nullptr);
-            m_pSocket->BindCloseFunction(nullptr);
+            m_pSocket->BindFuncBytesReceived(static_cast<function<void(TcpSocket* const)>>(nullptr));
+            m_pSocket->BindErrorFunction(static_cast<function<void(BaseSocket* const)>>(nullptr));
+            m_pSocket->BindCloseFunction(static_cast<function<void(BaseSocket* const)>>(nullptr));
 
             m_pSocket->Close();
             m_pSocket->Delete();
@@ -309,7 +309,7 @@ void FastCgiClient::DatenEmpfangen(TcpSocket* const pTcpSocket)
                 if (sizeof(FCGI_Header) + nContentLen + pHeader->paddingLength > nRead)
                     break;
 
-                if (nContentLen > 0 && itReqParam != end(m_lstRequest))
+                if (nContentLen > 0 && itReqParam != end(m_lstRequest) && itReqParam ->second.bIsAbort == false)
                 {
                     if (pHeader->type == FCGI_STDOUT)
                         itReqParam->second.fnDataOutput(pContent, nContentLen);
@@ -404,7 +404,7 @@ uint16_t FastCgiClient::SendRequest(vector<pair<string, string>>& vCgiParam, con
     ++m_nCountCurRequest;
     ++m_usResquestId;
 
-    m_lstRequest.emplace(m_usResquestId, REQPARAM({ fnDataOutput, pcvReqEnd, pbReqEnde }));
+    m_lstRequest.emplace(m_usResquestId, REQPARAM({ fnDataOutput, pcvReqEnd, pbReqEnde, "", false }));
     m_mxReqList.unlock();
 //    OutputDebugString(wstring(L"Request gesendet: " + to_wstring(m_usResquestId) + L"\r\n").c_str());
 
@@ -770,8 +770,8 @@ bool FastCgiServer::Start(const string strBindAddr, const uint16_t sPort)
 {
     m_pSocket = new TcpServer();
 
-    m_pSocket->BindNewConnection(bind(&FastCgiServer::OnNewConnection, this, _1));
-    m_pSocket->BindErrorFunction(bind(&FastCgiServer::OnSocketError, this, _1));
+    m_pSocket->BindNewConnection(static_cast<function<void(const vector<TcpSocket*>&)>>(bind(&FastCgiServer::OnNewConnection, this, _1)));
+    m_pSocket->BindErrorFunction(static_cast<function<void(BaseSocket* const)>>(bind(&FastCgiServer::OnSocketError, this, _1)));
     return m_pSocket->Start(strBindAddr.c_str(), sPort);
 }
 
@@ -801,9 +801,9 @@ void FastCgiServer::OnNewConnection(const vector<TcpSocket*>& vNewConnections)
     {
         if (pSocket != nullptr)
         {
-            pSocket->BindFuncBytesReceived(bind(&FastCgiServer::OnDataRecieved, this, _1));
-            pSocket->BindErrorFunction(bind(&FastCgiServer::OnSocketError, this, _1));
-            pSocket->BindCloseFunction(bind(&FastCgiServer::OnSocketCloseing, this, _1));
+            pSocket->BindFuncBytesReceived(static_cast<function<void(TcpSocket* const)>>(bind(&FastCgiServer::OnDataRecieved, this, _1)));
+            pSocket->BindErrorFunction(static_cast<function<void(BaseSocket* const)>>(bind(&FastCgiServer::OnSocketError, this, _1)));
+            pSocket->BindCloseFunction(static_cast<function<void(BaseSocket* const)>>(bind(&FastCgiServer::OnSocketCloseing, this, _1)));
             vCache.push_back(pSocket);
         }
     }
