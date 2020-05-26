@@ -266,6 +266,7 @@ void FastCgiClient::DatenEmpfangen(TcpSocket* const pTcpSocket)
             m_mxReqList.lock();
             auto itReqParam = m_lstRequest.find(nRequestId);
             m_mxReqList.unlock();
+//OutputDebugString(wstring(L"Record Typ = " + to_wstring(static_cast<int>(pHeader->type)) + L" for RequestId: " + to_wstring(nRequestId) + L" empfangen\r\n").c_str());
 
             if (pHeader->type == FCGI_GET_VALUES_RESULT && nRequestId == 0)
             {
@@ -344,7 +345,8 @@ void FastCgiClient::DatenEmpfangen(TcpSocket* const pTcpSocket)
 //                    OutputDebugString(wstring(L"Request beendet: " + to_wstring(itReqParam->first) + L"\r\n").c_str());
 
                     m_lstRequest.erase(itReqParam);
-                    m_nCountCurRequest--;
+                    if (itReqParam->second.bIsAbort == false && m_nCountCurRequest >= 1)
+                        m_nCountCurRequest--;
                 }
                 m_mxReqList.unlock();
             }
@@ -370,8 +372,11 @@ void FastCgiClient::SocketError(BaseSocket* const pBaseSocket)
 void FastCgiClient::SocketCloseing(BaseSocket* const pBaseSocket)
 {
     OutputDebugString(L"FastCgiClient::SocketCloseing\r\n");
-    m_bConnected = true;
-    m_cvConnected.notify_all();
+    if (m_bConnected == false)
+    {
+        m_bConnected = true;
+        m_cvConnected.notify_all();
+    }
     m_bClosed = true;
 
     if (reinterpret_cast<TcpSocket*>(pBaseSocket)->GetBytesAvailible() > 0)
@@ -395,7 +400,7 @@ void FastCgiClient::SocketCloseing(BaseSocket* const pBaseSocket)
 uint16_t FastCgiClient::SendRequest(vector<pair<string, string>>& vCgiParam, condition_variable* pcvReqEnd, bool* pbReqEnde, FN_OUTPUT fnDataOutput)
 {
     m_mxReqList.lock();
-    if (m_bConnected == false || m_nCountCurRequest >= m_FCGI_MAX_REQS || m_bClosed == true)
+    if (IsConnected() == false || m_nCountCurRequest >= m_FCGI_MAX_REQS)
     {
         m_mxReqList.unlock();
         return 0;
@@ -406,7 +411,7 @@ uint16_t FastCgiClient::SendRequest(vector<pair<string, string>>& vCgiParam, con
 
     m_lstRequest.emplace(m_usResquestId, REQPARAM({ fnDataOutput, pcvReqEnd, pbReqEnde, "", false }));
     m_mxReqList.unlock();
-//    OutputDebugString(wstring(L"Request gesendet: " + to_wstring(m_usResquestId) + L"\r\n").c_str());
+//    OutputDebugString(wstring(L"Request gesendet 1: " + to_wstring(m_usResquestId) + L"\r\n").c_str());
 
     unique_ptr<unsigned char[]> uqBuf = unique_ptr<unsigned char[]>(new unsigned char[4096]);
 
@@ -435,7 +440,10 @@ uint16_t FastCgiClient::SendRequest(vector<pair<string, string>>& vCgiParam, con
     {
         nContentLen += AddNameValuePair(&pContent, item.first.c_str(), item.first.size(), item.second.c_str(), item.second.size());
         if (nContentLen > 4000)
+        {
+            //OutputDebugString(L"Checkpoint 3\r\n");
             break;
+        }
     }
 
     FromShort(&pHeader->contentLengthB1, nContentLen);
@@ -497,10 +505,7 @@ bool FastCgiClient::AbortRequest(uint16_t nRequestId)
     m_mxReqList.lock();
     auto itReqParam = m_lstRequest.find(nRequestId);
     if (itReqParam != end(m_lstRequest))
-    {
-        m_lstRequest.erase(itReqParam);
-        m_nCountCurRequest--;
-    }
+        itReqParam->second.bIsAbort = true;
     m_mxReqList.unlock();
 
     return true;
