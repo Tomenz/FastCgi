@@ -289,12 +289,18 @@ void FastCgiClient::DatenEmpfangen(TcpSocket* const pTcpSocket)
                         strVarValue = string(reinterpret_cast<char*>(pContent), nVarValueLen), pContent += nVarValueLen, nContentLen -= nVarValueLen;
 
 //                    OutputDebugStringA(string("\'" + strVarName + "\' = \'" + strVarValue + "\'\r\n").c_str());
-                    if (strVarName == FCGI_MAX_CONNS)
-                        m_FCGI_MAX_CONNS = stoi(strVarValue);
-                    if (strVarName == FCGI_MAX_REQS)
-                        m_FCGI_MAX_REQS = stoi(strVarValue);
-                    if (strVarName == FCGI_MPXS_CONNS)
-                        m_FCGI_MPXS_CONNS = stoi(strVarValue);
+                    try
+                    {
+                        if (strVarName == FCGI_MAX_CONNS)
+                            m_FCGI_MAX_CONNS = stoul(strVarValue);
+                        if (strVarName == FCGI_MAX_REQS)
+                            m_FCGI_MAX_REQS = stoul(strVarValue);
+                        if (strVarName == FCGI_MPXS_CONNS)
+                            m_FCGI_MPXS_CONNS = stoul(strVarValue);
+                    }
+                    catch (const std::exception& /*ex*/)
+                    {   // In case of wrong digit strings we leave de default settings
+                    }
                 }
 
                 pHeader = reinterpret_cast<FCGI_Header*>(pContent + pHeader->paddingLength);
