@@ -247,7 +247,7 @@ void FastCgiClient::DatenEmpfangen(TcpSocket* const pTcpSocket)
         return;
     }
 
-    shared_ptr<unsigned char> spBuffer(new unsigned char[nAvalible + 1 + m_strRecBuf.size()]);
+    shared_ptr<unsigned char[]> spBuffer(new unsigned char[nAvalible + 1 + m_strRecBuf.size()]);
     if (m_strRecBuf.size() > 0)
         copy(begin(m_strRecBuf), end(m_strRecBuf), spBuffer.get());
 
@@ -723,7 +723,7 @@ protected:
     {
         if (n == 0) return n;
 
-        shared_ptr<char> pBuf(new char[n]);
+        shared_ptr<char[]> pBuf(new char[n]);
         copy(s, s + n, pBuf.get());
         m_mxLock.lock();
         m_vBuffers.emplace_back(make_tuple(pBuf, n));
@@ -763,7 +763,7 @@ protected:
 private:
     mutex m_mxLock;
     bool m_bEof;
-    vector<tuple<shared_ptr<char>, streamsize>> m_vBuffers;
+    vector<tuple<shared_ptr<char[]>, streamsize>> m_vBuffers;
 };
 
 FastCgiServer::FastCgiServer(FN_DOACTION fnCallBack) : m_fnDoAction(fnCallBack)
@@ -841,7 +841,7 @@ void FastCgiServer::OnDataRecieved(TcpSocket* pSocket)
         return;
     }
 
-    shared_ptr<unsigned char> spBuffer(new unsigned char[nAvalible]);
+    shared_ptr<unsigned char[]> spBuffer(new unsigned char[nAvalible]);
 
     uint32_t nRead = pSocket->Read(spBuffer.get(), nAvalible);
 
@@ -893,7 +893,7 @@ void FastCgiServer::OnDataRecieved(TcpSocket* pSocket)
                             pContent += nVarValueLen, nContentLen -= nVarValueLen;
                         }
 
-                        shared_ptr<unsigned char> spBuffer(new unsigned char[1024]);    // Reserve new buffer with more room
+                        shared_ptr<unsigned char[]> spBuffer(new unsigned char[1024]);    // Reserve new buffer with more room
                         FCGI_Header* pNewHeader = reinterpret_cast<FCGI_Header*>(spBuffer.get());       // get the pointer to the header
                         copy(pHeader, pHeader + 1/*sizeof(FCGI_Header)*/, pNewHeader);   // copy the received header to your new buffer
                         pContent = spBuffer.get() + sizeof(FCGI_Header);
@@ -1015,7 +1015,7 @@ void FastCgiServer::OnDataRecieved(TcpSocket* pSocket)
                             pHeader->paddingLength = 0;
                             pSocket->Write(pHeader, sizeof(FCGI_Header));
 
-                            shared_ptr<unsigned char> spBuffer(new unsigned char[1024]);    // Reserve new buffer with more room
+                            shared_ptr<unsigned char[]> spBuffer(new unsigned char[1024]);    // Reserve new buffer with more room
                             FCGI_EndRequestRecord* pEndRequest = reinterpret_cast<FCGI_EndRequestRecord*>(spBuffer.get());       // get the pointer to the header
                             copy(pHeader, pHeader + 1, &pEndRequest->header);                // copy the received header to your new buffer
 
