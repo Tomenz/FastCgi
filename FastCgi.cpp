@@ -57,14 +57,14 @@ using namespace std::placeholders;
 #define FCGI_MPXS_CONNS "FCGI_MPXS_CONNS"
 
 typedef struct {
-    unsigned char version;
-    unsigned char type;
-    unsigned char requestIdB1;
-    unsigned char requestIdB0;
-    unsigned char contentLengthB1;
-    unsigned char contentLengthB0;
-    unsigned char paddingLength;
-    unsigned char reserved;
+    uint8_t version;
+    uint8_t type;
+    uint8_t requestIdB1;
+    uint8_t requestIdB0;
+    uint8_t contentLengthB1;
+    uint8_t contentLengthB0;
+    uint8_t paddingLength;
+    uint8_t reserved;
 } FCGI_Header;
 
 typedef struct {
@@ -197,7 +197,7 @@ uint32_t FastCgiClient::Connect(const string strIpServer, uint16_t usPort, bool 
             pHeader->reserved = 0;
 
             unsigned char* pContent = qBuf + sizeof(FCGI_Header);
-            uint32_t nContentLen = 0;
+            uint16_t nContentLen = 0;
 
             nContentLen += AddNameValuePair(&pContent, FCGI_MAX_CONNS, strlen(FCGI_MAX_CONNS), "", 0);
             nContentLen += AddNameValuePair(&pContent, FCGI_MAX_REQS, strlen(FCGI_MAX_REQS), "", 0);
@@ -228,7 +228,7 @@ uint32_t FastCgiClient::Connect(const string strIpServer, uint16_t usPort, bool 
     return 0;
 }
 
-void FastCgiClient::Connected(TcpSocket* const pTcpSocket)
+void FastCgiClient::Connected(TcpSocket* const /*pTcpSocket*/)
 {
     m_bClosed = false;
     m_bConnected = true;
@@ -239,7 +239,7 @@ void FastCgiClient::DatenEmpfangen(TcpSocket* const pTcpSocket)
 {
     //OutputDebugString(L"DatenEmpfangen aufgerufen\r\n");
 
-    uint32_t nAvalible = pTcpSocket->GetBytesAvailible();
+    size_t nAvalible = pTcpSocket->GetBytesAvailible();
 
     if (nAvalible == 0)
     {
@@ -251,7 +251,7 @@ void FastCgiClient::DatenEmpfangen(TcpSocket* const pTcpSocket)
     if (m_strRecBuf.size() > 0)
         copy(begin(m_strRecBuf), end(m_strRecBuf), spBuffer.get());
 
-    uint32_t nRead = pTcpSocket->Read(spBuffer.get() + m_strRecBuf.size(), nAvalible);
+    size_t nRead = pTcpSocket->Read(spBuffer.get() + m_strRecBuf.size(), nAvalible);
 
     if (nRead > 0)
     {
@@ -271,7 +271,7 @@ void FastCgiClient::DatenEmpfangen(TcpSocket* const pTcpSocket)
             if (pHeader->type == FCGI_GET_VALUES_RESULT && nRequestId == 0)
             {
                 uint16_t nContentLen = ToShort(&pHeader->contentLengthB1);
-                unsigned char* pContent = spBuffer.get() + sizeof(FCGI_Header);
+                uint8_t* pContent = spBuffer.get() + sizeof(FCGI_Header);
 
                 if (sizeof(FCGI_Header) + nContentLen + pHeader->paddingLength > nRead)
                     break;
@@ -284,9 +284,9 @@ void FastCgiClient::DatenEmpfangen(TcpSocket* const pTcpSocket)
                     uint32_t nVarValueLen = ToNumber(&pContent, nContentLen);
                     string strVarName, strVarValue;
                     if (nVarNameLen > 0)
-                        strVarName = string(reinterpret_cast<char*>(pContent), nVarNameLen), pContent += nVarNameLen, nContentLen -= nVarNameLen;
+                        strVarName = string(reinterpret_cast<char*>(pContent), nVarNameLen), pContent += nVarNameLen, nContentLen -= static_cast<uint16_t>(nVarNameLen);
                     if (nVarValueLen > 0)
-                        strVarValue = string(reinterpret_cast<char*>(pContent), nVarValueLen), pContent += nVarValueLen, nContentLen -= nVarValueLen;
+                        strVarValue = string(reinterpret_cast<char*>(pContent), nVarValueLen), pContent += nVarValueLen, nContentLen -= static_cast<uint16_t>(nVarValueLen);
 
 //                    OutputDebugStringA(string("\'" + strVarName + "\' = \'" + strVarValue + "\'\r\n").c_str());
                     try
@@ -440,7 +440,7 @@ uint16_t FastCgiClient::SendRequest(vector<pair<string, string>>& vCgiParam, con
     pHeader->type = FCGI_PARAMS;
 
     unsigned char* pContent = uqBuf.get() + sizeof(FCGI_Header);
-    uint32_t nContentLen = 0;
+    uint16_t nContentLen = 0;
 
     for (auto& item : vCgiParam)
     {
@@ -618,9 +618,9 @@ bool FastCgiClient::IsFcgiProcessActiv() noexcept
     return m_strProcessPath.empty();    // Wenn kein Processpath angegeben ist, geben wir true zurück, dann gehen wir davon aus, dass der Process fremdgesteuert ist und läuft
 }
 
-uint32_t FastCgiBase::AddNameValuePair(unsigned char** pBuffer, const char* pKey, size_t nKeyLen, const char* pValue, size_t nValueLen)
+uint16_t FastCgiBase::AddNameValuePair(uint8_t** pBuffer, const char* pKey, size_t nKeyLen, const char* pValue, size_t nValueLen)
 {
-    uint32_t nRetLen = 0;
+    uint16_t nRetLen = 0;
     nRetLen += FromNumber(pBuffer, static_cast<uint32_t>(nKeyLen));
     nRetLen += FromNumber(pBuffer, static_cast<uint32_t>(nValueLen));
     for (size_t n = 0; n < nKeyLen; ++n, ++nRetLen)
@@ -631,37 +631,37 @@ uint32_t FastCgiBase::AddNameValuePair(unsigned char** pBuffer, const char* pKey
     return nRetLen;
 }
 
-uint32_t FastCgiBase::ToShort(const unsigned char* const pBuffer)
+uint16_t FastCgiBase::ToShort(const uint8_t* const pBuffer)
 {
-    uint32_t nResult = *pBuffer;
+    uint16_t nResult = *pBuffer;
     nResult <<= 8, nResult |= *(pBuffer + 1);
     return nResult;
 }
 
-uint32_t FastCgiBase::ToNumber(unsigned char** pBuffer, uint16_t& nContentLen)
+uint32_t FastCgiBase::ToNumber(uint8_t** pBuffer, uint16_t& nContentLen)
 {
-    uint32_t nLen = 1;
+    uint16_t nLen = 1;
     uint32_t nResult = **pBuffer;
     if ((**pBuffer & 0x80) == 0x80)
         nResult &= 0x7F, nLen = 4;
     (*pBuffer)++;
-    for (uint32_t n = 1; n < nLen; ++n)
+    for (uint16_t n = 1; n < nLen; ++n)
         nResult <<= 8, nResult |= *(*pBuffer)++;
     nContentLen -= nLen;
     return nResult;
 }
 
-void FastCgiBase::FromShort(unsigned char* const pBuffer, uint16_t sNumber)
+void FastCgiBase::FromShort(uint8_t* const pBuffer, uint16_t sNumber)
 {
     *pBuffer = (sNumber >> 8) & 0xff;
     *(pBuffer + 1) = sNumber & 0xff;
 }
 
-uint32_t FastCgiBase::FromNumber(unsigned char** pBuffer, uint32_t nNumber)
+uint16_t FastCgiBase::FromNumber(uint8_t** pBuffer, uint32_t nNumber)
 {
-    uint32_t nLen = 1;
+    uint16_t nLen = 1;
     if (nNumber < 128)
-        *(*pBuffer)++ = nNumber;
+        *(*pBuffer)++ = static_cast<uint8_t>(nNumber);
     else
     {
         *(*pBuffer)++ = 0x80;
@@ -833,7 +833,7 @@ void FastCgiServer::OnNewConnection(const vector<TcpSocket*>& vNewConnections)
 
 void FastCgiServer::OnDataRecieved(TcpSocket* pSocket)
 {
-    uint32_t nAvalible = pSocket->GetBytesAvailible();
+    size_t nAvalible = pSocket->GetBytesAvailible();
 
     if (nAvalible == 0)
     {
@@ -841,9 +841,9 @@ void FastCgiServer::OnDataRecieved(TcpSocket* pSocket)
         return;
     }
 
-    shared_ptr<unsigned char[]> spBuffer(new unsigned char[nAvalible]);
+    shared_ptr<uint8_t[]> spBuffer(new uint8_t[nAvalible]);
 
-    uint32_t nRead = pSocket->Read(spBuffer.get(), nAvalible);
+    size_t nRead = pSocket->Read(spBuffer.get(), nAvalible);
 
     if (nRead > 0)
     {
@@ -858,7 +858,7 @@ void FastCgiServer::OnDataRecieved(TcpSocket* pSocket)
                 uint16_t nRequestId = ToShort(&pHeader->requestIdB1);
                 uint16_t nContentLen = ToShort(&pHeader->contentLengthB1);
                 uint8_t nPaddingLen = pHeader->paddingLength;
-                unsigned char* pContent = reinterpret_cast<unsigned char*>(pHeader) + sizeof(FCGI_Header);
+                uint8_t* pContent = reinterpret_cast<uint8_t*>(pHeader) + sizeof(FCGI_Header);
                 FCGI_Header* pNextHeader = reinterpret_cast<FCGI_Header*>(pContent + nContentLen + nPaddingLen);
 
                 auto itRequest = itConnection->second.find(nRequestId); // Get the Request from the Request ID
@@ -889,14 +889,14 @@ void FastCgiServer::OnDataRecieved(TcpSocket* pSocket)
                             uint32_t nVarValueLen = ToNumber(&pContent, nContentLen);
                             string strVarName, strVarValue;
                             if (nVarNameLen > 0)
-                                vstrVariablen.push_back(string(reinterpret_cast<char*>(pContent), nVarNameLen)), pContent += nVarNameLen, nContentLen -= nVarNameLen;
-                            pContent += nVarValueLen, nContentLen -= nVarValueLen;
+                                vstrVariablen.push_back(string(reinterpret_cast<char*>(pContent), nVarNameLen)), pContent += nVarNameLen, nContentLen -= static_cast<uint16_t>(nVarNameLen);
+                            pContent += nVarValueLen, nContentLen -= static_cast<uint16_t>(nVarValueLen);
                         }
 
-                        shared_ptr<unsigned char[]> spBuffer(new unsigned char[1024]);    // Reserve new buffer with more room
-                        FCGI_Header* pNewHeader = reinterpret_cast<FCGI_Header*>(spBuffer.get());       // get the pointer to the header
+                        shared_ptr<uint8_t[]> spBufWrite(new uint8_t[1024]);    // Reserve new buffer with more room
+                        FCGI_Header* pNewHeader = reinterpret_cast<FCGI_Header*>(spBufWrite.get());       // get the pointer to the header
                         copy(pHeader, pHeader + 1/*sizeof(FCGI_Header)*/, pNewHeader);   // copy the received header to your new buffer
-                        pContent = spBuffer.get() + sizeof(FCGI_Header);
+                        pContent = spBufWrite.get() + sizeof(FCGI_Header);
                         nContentLen = 0;
                         for (const auto& strVariable : vstrVariablen)
                         {
@@ -910,7 +910,7 @@ void FastCgiServer::OnDataRecieved(TcpSocket* pSocket)
                         FromShort(&pNewHeader->contentLengthB1, nContentLen);
                         pNewHeader->type = FCGI_GET_VALUES_RESULT;
 
-                        pSocket->Write(spBuffer.get(), sizeof(FCGI_Header) + nContentLen);
+                        pSocket->Write(spBufWrite.get(), sizeof(FCGI_Header) + nContentLen);
                     }
                     pHeader = pNextHeader;
                     break;
@@ -984,9 +984,9 @@ void FastCgiServer::OnDataRecieved(TcpSocket* pSocket)
                             uint32_t nVarValueLen = ToNumber(&pContent, nContentLen);
                             string strVarName, strVarValue;
                             if (nVarNameLen > 0)
-                                strVarName = string(reinterpret_cast<char*>(pContent), nVarNameLen), pContent += nVarNameLen, nContentLen -= nVarNameLen;
+                                strVarName = string(reinterpret_cast<char*>(pContent), nVarNameLen), pContent += nVarNameLen, nContentLen -= static_cast<uint16_t>(nVarNameLen);
                             if (nVarValueLen > 0)
-                                strVarValue = string(reinterpret_cast<char*>(pContent), nVarValueLen), pContent += nVarValueLen, nContentLen -= nVarValueLen;
+                                strVarValue = string(reinterpret_cast<char*>(pContent), nVarValueLen), pContent += nVarValueLen, nContentLen -= static_cast<uint16_t>(nVarValueLen);
 
                             itRequest->second.lstParameter.emplace(strVarName, strVarValue);
                         }
@@ -1015,8 +1015,8 @@ void FastCgiServer::OnDataRecieved(TcpSocket* pSocket)
                             pHeader->paddingLength = 0;
                             pSocket->Write(pHeader, sizeof(FCGI_Header));
 
-                            shared_ptr<unsigned char[]> spBuffer(new unsigned char[1024]);    // Reserve new buffer with more room
-                            FCGI_EndRequestRecord* pEndRequest = reinterpret_cast<FCGI_EndRequestRecord*>(spBuffer.get());       // get the pointer to the header
+                            shared_ptr<uint8_t[]> spBufWrite(new uint8_t[1024]);    // Reserve new buffer with more room
+                            FCGI_EndRequestRecord* pEndRequest = reinterpret_cast<FCGI_EndRequestRecord*>(spBufWrite.get());       // get the pointer to the header
                             copy(pHeader, pHeader + 1, &pEndRequest->header);                // copy the received header to your new buffer
 
                             pEndRequest->header.type = FCGI_END_REQUEST;

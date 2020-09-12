@@ -24,13 +24,13 @@ typedef map<string, string> PARAMETERLIST;   // Name des Parameters, Wert des Pa
 class FastCgiBase
 {
 public:
-    uint32_t AddNameValuePair(unsigned char** pBuffer, const char* pKey, size_t nKeyLen, const char* pValue, size_t nValueLen);
+    uint16_t AddNameValuePair(uint8_t** pBuffer, const char* pKey, size_t nKeyLen, const char* pValue, size_t nValueLen);
 
 protected:
-    uint32_t ToShort(const unsigned char* const pBuffer);
-    uint32_t ToNumber(unsigned char** pBuffer, uint16_t& nContentLen);
-    void FromShort(unsigned char* const pBuffer, uint16_t sNumber);
-    uint32_t FromNumber(unsigned char** pBuffer, uint32_t nNumber);
+    uint16_t ToShort(const uint8_t* const pBuffer);
+    uint32_t ToNumber(uint8_t** pBuffer, uint16_t& nContentLen);
+    void FromShort(uint8_t* const pBuffer, uint16_t sNumber);
+    uint16_t FromNumber(uint8_t** pBuffer, uint32_t nNumber);
 };
 
 class FastCgiClient : public FastCgiBase
