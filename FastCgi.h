@@ -1,5 +1,14 @@
-// FastCgi.cpp
-//
+/* Copyright (C) 2016-2020 Thomas Hauck - All Rights Reserved.
+
+   Distributed under MIT license.
+   See file LICENSE for detail or copy at https://opensource.org/licenses/MIT
+
+   The author would be happy if changes and
+   improvements were reported back to him.
+
+   Author:  Thomas Hauck
+   Email:   Thomas@fam-hauck.de
+*/
 
 #include <functional>
 #include <string>
