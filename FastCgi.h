@@ -66,7 +66,7 @@ public:
     uint16_t SendRequest(vector<pair<string, string>>& vCgiParam, condition_variable* pcvReqEnd, bool* pbReqEnde, FN_OUTPUT fnDataOutput);
     void SendRequestData(const uint16_t nRequestId, const char* szBuffer, const uint32_t nBufLen);
     bool AbortRequest(uint16_t nRequestId);
-    bool IsFcgiProcessActiv() noexcept;
+    bool IsFcgiProcessActiv(size_t nCount = 0) noexcept;
 
 private:
     void Connected(TcpSocket* const pTcpSocket);

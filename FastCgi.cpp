@@ -580,7 +580,7 @@ void FastCgiClient::StartFcgiProcess()
     this_thread::sleep_for(chrono::milliseconds(500));
 }
 
-bool FastCgiClient::IsFcgiProcessActiv() noexcept
+bool FastCgiClient::IsFcgiProcessActiv(size_t nCount/* = 0*/) noexcept
 {
     if (m_hProcess != Null)
     {
@@ -620,9 +620,13 @@ bool FastCgiClient::IsFcgiProcessActiv() noexcept
         m_bClosed = true;
         m_hProcess = Null;
         OutputDebugString(L"FastCgiClient: Process deaktivatet\r\n");
+
+        if (nCount >= 5)
+            return false;
+
         StartFcgiProcess();
 
-        return IsFcgiProcessActiv();
+        return IsFcgiProcessActiv(++nCount);
     }
     return m_strProcessPath.empty();    // Wenn kein Processpath angegeben ist, geben wir true zurück, dann gehen wir davon aus, dass der Process fremdgesteuert ist und läuft
 }
