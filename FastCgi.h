@@ -33,13 +33,13 @@ typedef map<string, string> PARAMETERLIST;   // Name des Parameters, Wert des Pa
 class FastCgiBase
 {
 public:
-    uint16_t AddNameValuePair(uint8_t** pBuffer, const char* pKey, size_t nKeyLen, const char* pValue, size_t nValueLen);
+    uint16_t AddNameValuePair(uint8_t** pBuffer, const char* pKey, size_t nKeyLen, const char* pValue, size_t nValueLen) noexcept;
 
 protected:
-    uint16_t ToShort(const uint8_t* const pBuffer);
-    uint32_t ToNumber(uint8_t** pBuffer, uint16_t& nContentLen);
-    void FromShort(uint8_t* const pBuffer, uint16_t sNumber);
-    uint16_t FromNumber(uint8_t** pBuffer, uint32_t nNumber);
+    uint16_t ToShort(const uint8_t* const pBuffer) noexcept;
+    uint32_t ToNumber(uint8_t** pBuffer, uint16_t& nContentLen) noexcept;
+    void FromShort(uint8_t* const pBuffer, uint16_t sNumber) noexcept;
+    uint16_t FromNumber(uint8_t** pBuffer, uint32_t nNumber) noexcept;
 };
 
 class FastCgiClient : public FastCgiBase
@@ -57,26 +57,26 @@ class FastCgiClient : public FastCgiBase
 
 public:
     FastCgiClient() noexcept;
-    FastCgiClient(const wstring& strProcessPath) noexcept;
+    FastCgiClient(const wstring& strProcessPath);
     FastCgiClient(FastCgiClient&&) noexcept;
     virtual ~FastCgiClient() noexcept;
 
     uint32_t Connect(const string strIpServer, uint16_t usPort, bool bSecondConnection = false);
-    bool IsConnected() { return m_bConnected && !m_bClosed; }
+    bool IsConnected() noexcept { return m_bConnected && !m_bClosed; }
     uint16_t SendRequest(vector<pair<string, string>>& vCgiParam, condition_variable* pcvReqEnd, bool* pbReqEnde, FN_OUTPUT fnDataOutput);
     void SendRequestData(const uint16_t nRequestId, const char* szBuffer, const uint32_t nBufLen);
     bool AbortRequest(uint16_t nRequestId);
-    bool IsFcgiProcessActiv(size_t nCount = 0) noexcept;
+    bool IsFcgiProcessActiv(size_t nCount = 0);
 
 private:
-    void Connected(TcpSocket* const pTcpSocket);
+    void Connected(TcpSocket* const pTcpSocket) noexcept;
     void DatenEmpfangen(TcpSocket* const pTcpSocket);
     void SocketError(BaseSocket* const pBaseSocket);
     void SocketCloseing(BaseSocket* const pBaseSocket);
     void StartFcgiProcess();
 
 private:
-    TcpSocket*         m_pSocket;
+    unique_ptr<TcpSocket> m_pSocket;
     condition_variable m_cvConnected;
     bool               m_bConnected;
     bool               m_bClosed;
@@ -128,7 +128,7 @@ private:
     void OnSocketCloseing(BaseSocket* const);
 
 private:
-    TcpServer* m_pSocket;
+    unique_ptr<TcpServer>    m_pSocket;
     map<TcpSocket*, REQUEST> m_Connections;
     mutex      m_mxConnections;
 
