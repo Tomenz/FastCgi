@@ -570,7 +570,7 @@ void FastCgiClient::StartFcgiProcess()
         wargv[n] = &token[n][0];
     wargv[token.size()] = nullptr;
 
-    int iRes = posix_spawn(&m_hProcess, wargv[0], NULL, NULL, *wargv, environ);
+    int iRes = posix_spawn(&m_hProcess, wargv[0], NULL, NULL, &wargv[0], environ);
     if (iRes != 0)
         OutputDebugString(wstring(L"posix_spawn result: " + to_wstring(iRes) +  L", pid: " + to_wstring(m_hProcess) + L", errno = " + to_wstring(errno) +  L"\r\n").c_str());
 #endif
