@@ -245,25 +245,25 @@ void FastCgiClient::DatenEmpfangen(TcpSocket* const pTcpSocket)
 {
     //OutputDebugString(L"DatenEmpfangen aufgerufen\r\n");
 
-    size_t nAvalible = pTcpSocket->GetBytesAvailible();
+    size_t nAvailable = pTcpSocket->GetBytesAvailable();
 
-    if (nAvalible == 0)
+    if (nAvailable == 0)
     {
         pTcpSocket->Close();
         return;
     }
 
-    auto spBuffer = make_unique<uint8_t[]>(nAvalible + 1 + m_strRecBuf.size());
+    auto spBuffer = make_unique<uint8_t[]>(nAvailable + 1 + m_strRecBuf.size());
     if (m_strRecBuf.size() > 0)
         copy(begin(m_strRecBuf), end(m_strRecBuf), &spBuffer[0]);
 
-    size_t nRead = pTcpSocket->Read(&spBuffer[m_strRecBuf.size()], nAvalible);
+    size_t nRead = pTcpSocket->Read(&spBuffer[m_strRecBuf.size()], nAvailable);
 
     if (nRead > 0)
     {
         nRead += static_cast<uint32_t>(m_strRecBuf.size());
         m_strRecBuf.clear();
-        nAvalible = nRead;  // Merken
+        nAvailable = nRead;  // Merken
 
         FCGI_Header* pHeader = reinterpret_cast<FCGI_Header*>(&spBuffer[0]);
         while (nRead >= sizeof(FCGI_Header) && pHeader->version == 1)
@@ -370,7 +370,7 @@ void FastCgiClient::DatenEmpfangen(TcpSocket* const pTcpSocket)
         }
 
         if (nRead > 0)
-            m_strRecBuf = string(reinterpret_cast<char*>(&spBuffer[nAvalible - nRead]), nRead);
+            m_strRecBuf = string(reinterpret_cast<char*>(&spBuffer[nAvailable - nRead]), nRead);
     }
 }
 
@@ -391,7 +391,7 @@ void FastCgiClient::SocketCloseing(BaseSocket* const pBaseSocket)
     }
     m_bClosed = true;
 
-    if (reinterpret_cast<TcpSocket*>(pBaseSocket)->GetBytesAvailible() > 0)
+    if (reinterpret_cast<TcpSocket*>(pBaseSocket)->GetBytesAvailable() > 0)
         DatenEmpfangen(reinterpret_cast<TcpSocket*>(pBaseSocket));
 
     m_mxReqList.lock();
@@ -842,17 +842,17 @@ void FastCgiServer::OnNewConnection(const vector<TcpSocket*>& vNewConnections)
 
 void FastCgiServer::OnDataRecieved(TcpSocket* pSocket)
 {
-    const size_t nAvalible = pSocket->GetBytesAvailible();
+    const size_t nAvailable = pSocket->GetBytesAvailable();
 
-    if (nAvalible == 0)
+    if (nAvailable == 0)
     {
         pSocket->Close();
         return;
     }
 
-   auto spBuffer = make_unique<uint8_t[]>(nAvalible);
+   auto spBuffer = make_unique<uint8_t[]>(nAvailable);
 
-    size_t nRead = pSocket->Read(&spBuffer[0], nAvalible);
+    size_t nRead = pSocket->Read(&spBuffer[0], nAvailable);
 
     if (nRead > 0)
     {
