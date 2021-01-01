@@ -543,7 +543,7 @@ void FastCgiClient::StartFcgiProcess()
     strEntvirment += '\0';
 
     wstring strPath(m_strProcessPath);
-    strPath.erase(strPath.find_last_of(L"\\/") + 1); // Sollte der Backslash nicht gefunden werden wird der ganz String gelöscht
+    strPath.erase(strPath.find_last_of(L"\\/") + 1); // If the backslash is not found, the entire string is deleted
 
     if (CreateProcess(nullptr, &m_strProcessPath[0], nullptr, nullptr, FALSE, CREATE_DEFAULT_ERROR_MODE | CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW, &strEntvirment[0], strPath.c_str(), &stInfo, &ProcInfo) == TRUE)
     {
@@ -601,7 +601,7 @@ bool FastCgiClient::IsFcgiProcessActiv(size_t nCount/* = 0*/)
         m_mxReqList.lock();
         if (m_lstRequest.size() > 0)
         {
-            OutputDebugString(L"FastCgiClient: Process inaktive, aber wartende Antowrt\r\n");
+            OutputDebugString(L"FastCgiClient: Process inactive but available response\r\n");
             for (REQLIST::iterator iter = begin(m_lstRequest); iter != end(m_lstRequest); ++iter)
             {
                 if (iter->second.pbReqEnde != nullptr)
@@ -616,7 +616,7 @@ bool FastCgiClient::IsFcgiProcessActiv(size_t nCount/* = 0*/)
 
         m_bClosed = true;
         m_hProcess = Null;
-        OutputDebugString(L"FastCgiClient: Process deaktivatet\r\n");
+        OutputDebugString(L"FastCgiClient: Process deactivated\r\n");
 
         if (nCount >= 5)
             return false;
@@ -625,7 +625,7 @@ bool FastCgiClient::IsFcgiProcessActiv(size_t nCount/* = 0*/)
 
         return IsFcgiProcessActiv(++nCount);
     }
-    return m_strProcessPath.empty();    // Wenn kein Processpath angegeben ist, geben wir true zurück, dann gehen wir davon aus, dass der Process fremdgesteuert ist und läuft
+    return m_strProcessPath.empty();    // If no process path is given, we return true, we assume that the process is externally controlled and running
 }
 
 uint16_t FastCgiBase::AddNameValuePair(uint8_t** pBuffer, const char* pKey, size_t nKeyLen, const char* pValue, size_t nValueLen) noexcept
@@ -821,7 +821,7 @@ void FastCgiServer::OnNewConnection(const vector<TcpSocket*>& vNewConnections)
     {
         if (pSocket != nullptr)
         {
-            pSocket->BindFuncBytesReceived(static_cast<function<void(TcpSocket* const)>>(bind(&FastCgiServer::OnDataRecieved, this, _1)));
+            pSocket->BindFuncBytesReceived(static_cast<function<void(TcpSocket* const)>>(bind(&FastCgiServer::OnDataReceived, this, _1)));
             pSocket->BindErrorFunction(static_cast<function<void(BaseSocket* const)>>(bind(&FastCgiServer::OnSocketError, this, _1)));
             pSocket->BindCloseFunction(static_cast<function<void(BaseSocket* const)>>(bind(&FastCgiServer::OnSocketCloseing, this, _1)));
             vCache.push_back(pSocket);
@@ -840,7 +840,7 @@ void FastCgiServer::OnNewConnection(const vector<TcpSocket*>& vNewConnections)
     }
 }
 
-void FastCgiServer::OnDataRecieved(TcpSocket* pSocket)
+void FastCgiServer::OnDataReceived(TcpSocket* pSocket)
 {
     const size_t nAvailable = pSocket->GetBytesAvailable();
 

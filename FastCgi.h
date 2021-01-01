@@ -123,7 +123,7 @@ public:
 
 private:
     void OnNewConnection(const vector<TcpSocket*>& vNewConnections);
-    void OnDataRecieved(TcpSocket*);
+    void OnDataReceived(TcpSocket*);
     void OnSocketError(BaseSocket* const);
     void OnSocketCloseing(BaseSocket* const);
 
