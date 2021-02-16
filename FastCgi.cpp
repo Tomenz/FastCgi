@@ -966,7 +966,7 @@ void FastCgiServer::OnDataReceived(TcpSocket* pSocket)
 
                             while (nAnzahl - nOffset != 0)
                             {
-                                const uint16_t sSend = min(static_cast<uint16_t>(nAnzahl - nOffset), static_cast<uint16_t>(16368));
+                                const uint16_t sSend = static_cast<uint16_t>(min(nAnzahl - nOffset, static_cast<size_t>(16368)));
                                 FromShort(&pHeader->contentLengthB1, sSend);
                                 pSock->Write(pHeader, sizeof(FCGI_Header));
                                 pSock->Write(reinterpret_cast<const char*>(buf) + nOffset, sSend);
