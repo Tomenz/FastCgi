@@ -102,14 +102,14 @@ typedef struct {
     FCGI_EndRequestBody body;
 } FCGI_EndRequestRecord;
 
-FastCgiClient::FastCgiClient() noexcept : m_bConnected(false), m_bClosed(false), m_usResquestId(0), m_nCountCurRequest(0), m_hProcess(Null)
+FastCgiClient::FastCgiClient() noexcept : m_bConnected(false), m_cClosed(2), m_usResquestId(0), m_nCountCurRequest(0), m_hProcess(Null)
 {
     m_FCGI_MAX_CONNS  = UINT32_MAX;
     m_FCGI_MAX_REQS   = UINT32_MAX;
     m_FCGI_MPXS_CONNS = 0;
 }
 
-FastCgiClient::FastCgiClient(const wstring& strProcessPath) : m_bConnected(false), m_bClosed(false), m_usResquestId(0), m_nCountCurRequest(0), m_strProcessPath(strProcessPath), m_hProcess(Null)
+FastCgiClient::FastCgiClient(const wstring& strProcessPath) : m_bConnected(false), m_cClosed(2), m_usResquestId(0), m_nCountCurRequest(0), m_strProcessPath(strProcessPath), m_hProcess(Null)
 {
     m_FCGI_MAX_CONNS = UINT32_MAX;
     m_FCGI_MAX_REQS = UINT32_MAX;
@@ -118,7 +118,7 @@ FastCgiClient::FastCgiClient(const wstring& strProcessPath) : m_bConnected(false
     StartFcgiProcess();
 }
 
-FastCgiClient::FastCgiClient(FastCgiClient&& src) noexcept : m_bConnected(false), m_bClosed(false), m_usResquestId(0), m_nCountCurRequest(0), m_hProcess(Null)
+FastCgiClient::FastCgiClient(FastCgiClient&& src) noexcept : m_bConnected(false), m_cClosed(2), m_usResquestId(0), m_nCountCurRequest(0), m_hProcess(Null)
 {
     swap(m_pSocket, src.m_pSocket);
     swap(m_usResquestId, src.m_usResquestId);
@@ -127,7 +127,7 @@ FastCgiClient::FastCgiClient(FastCgiClient&& src) noexcept : m_bConnected(false)
     swap(m_nCountCurRequest, src.m_nCountCurRequest);
 
     swap(m_bConnected, src.m_bConnected);
-    swap(m_bClosed, src.m_bClosed);
+    //swap(m_cClosed, src.m_cClosed);
     swap(m_strRecBuf, src.m_strRecBuf);
 
     swap(m_FCGI_MAX_CONNS, src.m_FCGI_MAX_CONNS);
@@ -142,12 +142,13 @@ FastCgiClient::~FastCgiClient() noexcept
 {
     if (m_pSocket != nullptr)
     {
-        if (m_bClosed == false)
+        if (m_cClosed == 0)
         {
             m_pSocket->BindFuncBytesReceived(static_cast<function<void(TcpSocket* const)>>(nullptr));
             m_pSocket->BindErrorFunction(static_cast<function<void(BaseSocket* const)>>(nullptr));
             m_pSocket->BindCloseFunction(static_cast<function<void(BaseSocket* const)>>(nullptr));
             m_pSocket->Close();
+            m_pSocket.reset();
         }
     }
 
@@ -166,13 +167,9 @@ FastCgiClient::~FastCgiClient() noexcept
 
 uint32_t FastCgiClient::Connect(const string strIpServer, uint16_t usPort, bool bSecondConnection/* = false*/)
 {
-    //OutputDebugString(L"FastCgiClient::Connect\r\n");
-    if (m_pSocket != nullptr)
-    {
-        m_pSocket->BindFuncBytesReceived(static_cast<function<void(TcpSocket* const)>>(nullptr));
-        m_pSocket->BindErrorFunction(static_cast<function<void(BaseSocket* const)>>(nullptr));
-        m_pSocket->BindCloseFunction(static_cast<function<void(BaseSocket* const)>>(nullptr));
-    }
+
+    while ((m_cClosed & 2) != 2)
+        this_thread::sleep_for(chrono::milliseconds(10));
 
     m_pSocket = make_unique<TcpSocket>();
 
@@ -218,12 +215,7 @@ uint32_t FastCgiClient::Connect(const string strIpServer, uint16_t usPort, bool 
             if (m_cvConnected.wait_for(lock, chrono::milliseconds(500), [&]() noexcept { return m_bConnected; }) == false)   // Timeout
                 return 0;
 
-            m_pSocket->BindFuncBytesReceived(static_cast<function<void(TcpSocket* const)>>(nullptr));
-            m_pSocket->BindErrorFunction(static_cast<function<void(BaseSocket* const)>>(nullptr));
-            m_pSocket->BindCloseFunction(static_cast<function<void(BaseSocket* const)>>(nullptr));
-
             m_pSocket->Close();
-            m_pSocket.reset(nullptr);
 
             return Connect(strIpServer, usPort, true);
         }
@@ -236,7 +228,7 @@ uint32_t FastCgiClient::Connect(const string strIpServer, uint16_t usPort, bool 
 
 void FastCgiClient::Connected(TcpSocket* const /*pTcpSocket*/) noexcept
 {
-    m_bClosed = false;
+    m_cClosed = 0;
     m_bConnected = true;
     m_cvConnected.notify_all();
 }
@@ -377,21 +369,19 @@ void FastCgiClient::DatenEmpfangen(TcpSocket* const pTcpSocket)
 void FastCgiClient::SocketError(BaseSocket* const pBaseSocket)
 {
     OutputDebugString(wstring(L"FastCgiClient::SocketError: " + to_wstring(pBaseSocket->GetErrorNo()) + L" @ " + to_wstring(pBaseSocket->GetErrorLoc()) + L"\r\n").c_str());
-    m_bClosed = true;
+    m_cClosed = 1;
     pBaseSocket->Close();
 }
 
 void FastCgiClient::SocketCloseing(BaseSocket* const pBaseSocket)
 {
-    OutputDebugString(L"FastCgiClient::SocketCloseing\r\n");
     if (m_bConnected == false)
     {
         m_bConnected = true;
         m_cvConnected.notify_all();
     }
-    m_bClosed = true;
 
-    if (reinterpret_cast<TcpSocket*>(pBaseSocket)->GetBytesAvailable() > 0)
+    if (m_pSocket.get() == pBaseSocket && reinterpret_cast<TcpSocket*>(pBaseSocket)->GetBytesAvailable() > 0)
         DatenEmpfangen(reinterpret_cast<TcpSocket*>(pBaseSocket));
 
     m_mxReqList.lock();
@@ -407,6 +397,8 @@ void FastCgiClient::SocketCloseing(BaseSocket* const pBaseSocket)
     m_nCountCurRequest = 0;
     m_strRecBuf.clear();
     m_mxReqList.unlock();
+
+    m_cClosed |= 2;
 }
 
 uint16_t FastCgiClient::SendRequest(vector<pair<string, string>>& vCgiParam, condition_variable* pcvReqEnd, bool* pbReqEnde, FN_OUTPUT fnDataOutput)
@@ -419,6 +411,8 @@ uint16_t FastCgiClient::SendRequest(vector<pair<string, string>>& vCgiParam, con
     }
 
     ++m_nCountCurRequest;
+    if (m_usResquestId > 65530)
+        m_usResquestId = 0;
     ++m_usResquestId;
 
     m_lstRequest.emplace(m_usResquestId, REQPARAM({ fnDataOutput, pcvReqEnd, pbReqEnde, "", false }));
@@ -614,7 +608,7 @@ bool FastCgiClient::IsFcgiProcessActiv(size_t nCount/* = 0*/)
         }
         m_mxReqList.unlock();
 
-        m_bClosed = true;
+        m_cClosed |= 4;
         m_hProcess = Null;
         OutputDebugString(L"FastCgiClient: Process deactivated\r\n");
 

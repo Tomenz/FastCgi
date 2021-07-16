@@ -62,7 +62,7 @@ public:
     virtual ~FastCgiClient() noexcept;
 
     uint32_t Connect(const string strIpServer, uint16_t usPort, bool bSecondConnection = false);
-    bool IsConnected() noexcept { return m_bConnected && !m_bClosed; }
+    bool IsConnected() noexcept { return m_bConnected && m_cClosed == 0; }
     uint16_t SendRequest(vector<pair<string, string>>& vCgiParam, condition_variable* pcvReqEnd, bool* pbReqEnde, FN_OUTPUT fnDataOutput);
     void SendRequestData(const uint16_t nRequestId, const char* szBuffer, const uint32_t nBufLen);
     bool AbortRequest(uint16_t nRequestId);
@@ -79,7 +79,7 @@ private:
     unique_ptr<TcpSocket> m_pSocket;
     condition_variable m_cvConnected;
     bool               m_bConnected;
-    bool               m_bClosed;
+    atomic_char        m_cClosed;
     REQLIST            m_lstRequest;
     mutex              m_mxReqList;
     string             m_strRecBuf;
