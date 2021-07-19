@@ -235,8 +235,6 @@ void FastCgiClient::Connected(TcpSocket* const /*pTcpSocket*/) noexcept
 
 void FastCgiClient::DatenEmpfangen(TcpSocket* const pTcpSocket)
 {
-    //OutputDebugString(L"DatenEmpfangen aufgerufen\r\n");
-
     size_t nAvailable = pTcpSocket->GetBytesAvailable();
 
     if (nAvailable == 0)
@@ -264,7 +262,6 @@ void FastCgiClient::DatenEmpfangen(TcpSocket* const pTcpSocket)
             m_mxReqList.lock();
             auto itReqParam = m_lstRequest.find(nRequestId);
             m_mxReqList.unlock();
-//OutputDebugString(wstring(L"Record Typ = " + to_wstring(static_cast<int>(pHeader->type)) + L" for RequestId: " + to_wstring(nRequestId) + L" empfangen\r\n").c_str());
 
             if (pHeader->type == FCGI_GET_VALUES_RESULT && nRequestId == 0)
             {
@@ -286,7 +283,6 @@ void FastCgiClient::DatenEmpfangen(TcpSocket* const pTcpSocket)
                     if (nVarValueLen > 0)
                         strVarValue = string(reinterpret_cast<char*>(pContent), nVarValueLen), pContent += nVarValueLen, nContentLen -= static_cast<uint16_t>(nVarValueLen);
 
-//                    OutputDebugStringA(string("\'" + strVarName + "\' = \'" + strVarValue + "\'\r\n").c_str());
                     try
                     {
                         if (strVarName == FCGI_MAX_CONNS)
@@ -346,7 +342,6 @@ void FastCgiClient::DatenEmpfangen(TcpSocket* const pTcpSocket)
                         *itReqParam->second.pbReqEnde = true;
                     if (itReqParam->second.pcvReqEnd != nullptr)
                         itReqParam->second.pcvReqEnd->notify_all();
-//                    OutputDebugString(wstring(L"Request beendet: " + to_wstring(itReqParam->first) + L"\r\n").c_str());
 
                     if (itReqParam->second.bIsAbort == false && m_nCountCurRequest >= 1)
                         m_nCountCurRequest--;
@@ -368,7 +363,6 @@ void FastCgiClient::DatenEmpfangen(TcpSocket* const pTcpSocket)
 
 void FastCgiClient::SocketError(BaseSocket* const pBaseSocket)
 {
-    OutputDebugString(wstring(L"FastCgiClient::SocketError: " + to_wstring(pBaseSocket->GetErrorNo()) + L" @ " + to_wstring(pBaseSocket->GetErrorLoc()) + L"\r\n").c_str());
     m_cClosed = 1;
     pBaseSocket->Close();
 }
@@ -391,7 +385,6 @@ void FastCgiClient::SocketCloseing(BaseSocket* const pBaseSocket)
             *iter->second.pbReqEnde = true;
         if (iter->second.pcvReqEnd != nullptr)
             iter->second.pcvReqEnd->notify_all();
-        OutputDebugString(wstring(L"Request entfernt: " + to_wstring(iter->first) + L"\r\n").c_str());
     }
     m_lstRequest.clear();
     m_nCountCurRequest = 0;
@@ -417,7 +410,6 @@ uint16_t FastCgiClient::SendRequest(vector<pair<string, string>>& vCgiParam, con
 
     m_lstRequest.emplace(m_usResquestId, REQPARAM({ fnDataOutput, pcvReqEnd, pbReqEnde, "", false }));
     m_mxReqList.unlock();
-//    OutputDebugString(wstring(L"Request gesendet 1: " + to_wstring(m_usResquestId) + L"\r\n").c_str());
 
     auto uqBuf = make_unique<uint8_t[]>(4096);
 
@@ -447,7 +439,6 @@ uint16_t FastCgiClient::SendRequest(vector<pair<string, string>>& vCgiParam, con
         nContentLen += AddNameValuePair(&pContent, item.first.c_str(), item.first.size(), item.second.c_str(), item.second.size());
         if (nContentLen > 4000)
         {
-            //OutputDebugString(L"Checkpoint 3\r\n");
             break;
         }
     }
@@ -495,7 +486,6 @@ void FastCgiClient::SendRequestData(const uint16_t nRequestId, const char* szBuf
 
 bool FastCgiClient::AbortRequest(uint16_t nRequestId)
 {
-    OutputDebugString(L"FastCgiClient::AbortRequest\r\n");
     string caBuffer(sizeof(FCGI_Header), 0);
     // Header Record senden
     FCGI_Header* pHeader = reinterpret_cast<FCGI_Header*>(&caBuffer[0]);
@@ -519,7 +509,6 @@ bool FastCgiClient::AbortRequest(uint16_t nRequestId)
 
 void FastCgiClient::StartFcgiProcess()
 {
-    OutputDebugString(L"FastCgiClient::StartFcgiProcess\r\n");
 #if defined(_WIN32) || defined(_WIN64)
     STARTUPINFO stInfo = { 0 };
     PROCESS_INFORMATION ProcInfo = { nullptr, nullptr, 0, 0 };
@@ -587,7 +576,6 @@ bool FastCgiClient::IsFcgiProcessActiv(size_t nCount/* = 0*/)
         CloseHandle(m_hProcess);
 #else
         int status = waitpid(m_hProcess, &nExitCode, WNOHANG);
-        OutputDebugString(wstring(L"waitpid result: " + to_wstring(status) +  L", ExitCode: " + to_wstring(nExitCode) + L", errno = " + to_wstring(errno) +  L"\r\n").c_str());
 
         if (status == 0)
             return true;
@@ -595,7 +583,6 @@ bool FastCgiClient::IsFcgiProcessActiv(size_t nCount/* = 0*/)
         m_mxReqList.lock();
         if (m_lstRequest.size() > 0)
         {
-            OutputDebugString(L"FastCgiClient: Process inactive but available response\r\n");
             for (REQLIST::iterator iter = begin(m_lstRequest); iter != end(m_lstRequest); ++iter)
             {
                 if (iter->second.pbReqEnde != nullptr)
@@ -610,7 +597,6 @@ bool FastCgiClient::IsFcgiProcessActiv(size_t nCount/* = 0*/)
 
         m_cClosed |= 4;
         m_hProcess = Null;
-        OutputDebugString(L"FastCgiClient: Process deactivated\r\n");
 
         if (nCount >= 5)
             return false;
@@ -1035,7 +1021,6 @@ void FastCgiServer::OnDataReceived(TcpSocket* pSocket)
                         }
                         else
                         {
-//OutputDebugString(wstring(L"FCGI_STDIN write " + to_wstring(nContentLen) + L" Bytes, in stream: " + to_wstring((*itRequest->second.stremIn.get())->rdbuf()->in_avail()) + L" Bytes\r\n").c_str());
                             (*itRequest->second.stremIn.get())->write(reinterpret_cast<char*>(pContent), nContentLen);
                         }
                     }
@@ -1061,7 +1046,6 @@ void FastCgiServer::OnSocketError(BaseSocket* const pSocket)
 
 void FastCgiServer::OnSocketCloseing(BaseSocket* const pSocket)
 {
-    OutputDebugString(L"FastCgiClient::OnSocketCloseing enter\r\n");
     m_mxConnections.lock();
     const auto itConnection = m_Connections.find(reinterpret_cast<TcpSocket*>(pSocket));
     if (itConnection != end(m_Connections))
@@ -1072,7 +1056,6 @@ void FastCgiServer::OnSocketCloseing(BaseSocket* const pSocket)
             {
                 thread& thAction = itReq->second.thDoAction;
                 m_mxConnections.unlock();
-                OutputDebugString(L"FastCgiClient::OnSocketCloseing waiting for thread\r\n");
                 thAction.join();
                 m_mxConnections.lock();
             }
@@ -1080,5 +1063,4 @@ void FastCgiServer::OnSocketCloseing(BaseSocket* const pSocket)
         m_Connections.erase(itConnection);
     }
     m_mxConnections.unlock();
-    OutputDebugString(L"FastCgiClient::OnSocketCloseing leaving\r\n");
 }
