@@ -794,6 +794,13 @@ bool FastCgiServer::Stop()
     return true;
 }
 
+int FastCgiServer::GetError()
+{
+    if (m_pSocket != nullptr)
+        return m_pSocket->GetErrorNo();
+    return -1;
+}
+
 void FastCgiServer::OnNewConnection(const vector<TcpSocket*>& vNewConnections)
 {
     vector<TcpSocket*> vCache;

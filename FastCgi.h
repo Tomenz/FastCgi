@@ -16,7 +16,6 @@
 #include <condition_variable>
 #include <sstream>
 #include <thread>
-#include <atomic>
 
 #include "SocketLib/SocketLib.h"
 #if defined(_WIN32) || defined(_WIN64)
@@ -121,6 +120,7 @@ public:
 
     bool Start(const string strBindAddr, const uint16_t sPort);
     bool Stop();
+    int GetError();
 
 private:
     void OnNewConnection(const vector<TcpSocket*>& vNewConnections);
