@@ -756,7 +756,7 @@ private:
     vector<tuple<unique_ptr<char[]>, streamsize>> m_vBuffers;
 };
 
-FastCgiServer::FastCgiServer(FN_DOACTION fnCallBack) : m_fnDoAction(fnCallBack)
+FastCgiServer::FastCgiServer(const string strBindAddr, const uint16_t sPort, FN_DOACTION fnCallBack) : m_strBindAddr(strBindAddr), m_sPort(sPort), m_fnDoAction(fnCallBack)
 {
 
 }
@@ -767,13 +767,13 @@ FastCgiServer::~FastCgiServer()
         this_thread::sleep_for(chrono::milliseconds(10));
 }
 
-bool FastCgiServer::Start(const string strBindAddr, const uint16_t sPort)
+bool FastCgiServer::Start()
 {
     m_pSocket = make_unique<TcpServer>();
 
     m_pSocket->BindNewConnection(static_cast<function<void(const vector<TcpSocket*>&)>>(bind(&FastCgiServer::OnNewConnection, this, _1)));
     m_pSocket->BindErrorFunction(static_cast<function<void(BaseSocket* const)>>(bind(&FastCgiServer::OnSocketError, this, _1)));
-    return m_pSocket->Start(strBindAddr.c_str(), sPort);
+    return m_pSocket->Start(m_strBindAddr.c_str(), m_sPort);
 }
 
 bool FastCgiServer::Stop()

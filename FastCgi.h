@@ -115,12 +115,14 @@ class FastCgiServer : public FastCgiBase
     typedef function<int(const PARAMETERLIST&, ostream&, istream&)> FN_DOACTION;
 
 public:
-    FastCgiServer(FN_DOACTION fnCallBack);
+    FastCgiServer(const string strBindAddr, const uint16_t sPort, FN_DOACTION fnCallBack);
     virtual ~FastCgiServer();
 
-    bool Start(const string strBindAddr, const uint16_t sPort);
+    bool Start();
     bool Stop();
     int GetError();
+    uint16_t GetPort() { return m_sPort; }
+    string GetBindAdresse() { return m_strBindAddr; }
 
 private:
     void OnNewConnection(const vector<TcpSocket*>& vNewConnections);
@@ -131,7 +133,9 @@ private:
 private:
     unique_ptr<TcpServer>    m_pSocket;
     map<TcpSocket*, REQUEST> m_Connections;
-    mutex      m_mxConnections;
+    mutex                    m_mxConnections;
 
-    FN_DOACTION m_fnDoAction;
+    string                   m_strBindAddr;
+    uint16_t                 m_sPort;
+    FN_DOACTION              m_fnDoAction;
 };
