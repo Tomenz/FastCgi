@@ -16,6 +16,7 @@
 #include <condition_variable>
 #include <sstream>
 #include <thread>
+#include <atomic>
 
 #include "SocketLib/SocketLib.h"
 #if defined(_WIN32) || defined(_WIN64)
