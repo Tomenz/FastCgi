@@ -24,8 +24,12 @@
 #include <unistd.h>
 #include <spawn.h>
 #include <sys/wait.h>
+#define _environ environ
 extern void OutputDebugString(const wchar_t* pOut);
 extern void OutputDebugStringA(const char* pOut);
+static const std::vector<std::string> vEnvFilter{"USER=", "HOME="};
+#else
+static const std::vector<std::string> vEnvFilter{"COMPUTERNAME=","HOMEDRIVE=","HOMEPATH=","USERNAME=","USERPROFILE="};
 #endif
 
 using namespace std;
@@ -123,7 +127,7 @@ FastCgiClient::FastCgiClient(FastCgiClient&& src) noexcept : m_bConnected(false)
     swap(m_pSocket, src.m_pSocket);
     swap(m_usResquestId, src.m_usResquestId);
     swap(m_lstRequest, src.m_lstRequest);
-    
+
     swap(m_nCountCurRequest, src.m_nCountCurRequest);
 
     swap(m_bConnected, src.m_bConnected);
@@ -451,7 +455,7 @@ uint16_t FastCgiClient::SendRequest(vector<pair<string, string>>& vCgiParam, con
     m_pSocket->Write(pHeader, sizeof(FCGI_Header));
 
     return m_usResquestId;
-} 
+}
 void FastCgiClient::SendRequestData(const uint16_t nRequestId, const char* szBuffer, const uint32_t nBufLen)
 {
     uint32_t nMaxLen = min(nBufLen, static_cast<uint32_t>(0x7fff));
@@ -520,7 +524,8 @@ void FastCgiClient::StartFcgiProcess()
     char** aszEnv = _environ;
     while (*aszEnv)
     {
-        strEntvirment += string(*aszEnv) + '\0';
+        if (std::find_if(vEnvFilter.begin(), vEnvFilter.end(), [&](auto& strFilter) { return std::string(*aszEnv).find(strFilter) == 0 ? true : false; }) != vEnvFilter.end())
+            strEntvirment += string(*aszEnv) + '\0';
         ++aszEnv;
     }
     strEntvirment += '\0';
@@ -553,7 +558,17 @@ void FastCgiClient::StartFcgiProcess()
         wargv[n] = &token[n][0];
     wargv[token.size()] = nullptr;
 
-    int iRes = posix_spawn(&m_hProcess, wargv[0], NULL, NULL, &wargv[0], environ);
+    vector<char*> envp;
+    char** aszEnv = _environ;
+    while (*aszEnv)
+    {
+        if (std::find_if(vEnvFilter.begin(), vEnvFilter.end(), [&](auto& strFilter) { return std::string(*aszEnv).find(strFilter) == 0 ? true : false; }) != vEnvFilter.end())
+            envp.push_back(*aszEnv);
+        ++aszEnv;
+    }
+    envp.push_back(nullptr);
+
+    int iRes = posix_spawn(&m_hProcess, wargv[0], NULL, NULL, &wargv[0], &envp[0]);
     if (iRes != 0)
         OutputDebugString(wstring(L"posix_spawn result: " + to_wstring(iRes) +  L", pid: " + to_wstring(m_hProcess) + L", errno = " + to_wstring(errno) +  L"\r\n").c_str());
 #endif
