@@ -29,7 +29,7 @@ extern void OutputDebugString(const wchar_t* pOut);
 extern void OutputDebugStringA(const char* pOut);
 static const std::vector<std::string> vEnvFilter{"USER=", "HOME="};
 #else
-static const std::vector<std::string> vEnvFilter{"COMPUTERNAME=","HOMEDRIVE=","HOMEPATH=","USERNAME=","USERPROFILE="};
+static const std::vector<std::string> vEnvFilter{"COMPUTERNAME=","HOMEDRIVE=","HOMEPATH=","USERNAME=","USERPROFILE=","SystemRoot=","TMP=","TEMP="/*,"Path="*/};
 #endif
 
 using namespace std;
@@ -524,6 +524,7 @@ void FastCgiClient::StartFcgiProcess()
     char** aszEnv = _environ;
     while (*aszEnv)
     {
+        //OutputDebugStringA(std::string(string(*aszEnv) + "\r\n").c_str());
         if (std::find_if(vEnvFilter.begin(), vEnvFilter.end(), [&](auto& strFilter) { return std::string(*aszEnv).find(strFilter) == 0 ? true : false; }) != vEnvFilter.end())
             strEntvirment += string(*aszEnv) + '\0';
         ++aszEnv;
@@ -579,17 +580,17 @@ bool FastCgiClient::IsFcgiProcessActiv(size_t nCount/* = 0*/)
 {
     if (m_hProcess != Null)
     {
-        int nExitCode;
 #if defined(_WIN32) || defined(_WIN64)
-        nExitCode = STILL_ACTIVE;
+        DWORD nExitCode = STILL_ACTIVE;
 
-        if (!GetExitCodeProcess(m_hProcess, reinterpret_cast<unsigned long*>(&nExitCode)))
+        if (!GetExitCodeProcess(m_hProcess, &nExitCode))
             return false;
         if (nExitCode == STILL_ACTIVE)
             return true;
 
         CloseHandle(m_hProcess);
 #else
+        int nExitCode;
         int status = waitpid(m_hProcess, &nExitCode, WNOHANG);
 
         if (status == 0)
