@@ -29,7 +29,7 @@ extern void OutputDebugString(const wchar_t* pOut);
 extern void OutputDebugStringA(const char* pOut);
 static const std::vector<std::string> vEnvFilter{"USER=", "HOME="};
 #else
-static const std::vector<std::string> vEnvFilter{"COMPUTERNAME=","HOMEDRIVE=","HOMEPATH=","USERNAME=","USERPROFILE=","SystemRoot=","TMP=","TEMP="/*,"Path="*/};
+static const std::vector<std::string> vEnvFilter{"COMPUTERNAME=","HOMEDRIVE=","HOMEPATH=","USERNAME=","USERPROFILE=","SystemRoot=","TMP=","TEMP=","Path="};
 #endif
 
 using namespace std;
