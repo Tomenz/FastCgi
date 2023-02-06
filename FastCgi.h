@@ -73,7 +73,7 @@ private:
     void Connected(TcpSocket* const pTcpSocket) noexcept;
     void DatenEmpfangen(TcpSocket* const pTcpSocket);
     void SocketError(BaseSocket* const pBaseSocket);
-    void SocketCloseing(BaseSocket* const pBaseSocket);
+    void SocketClosing(BaseSocket* const pBaseSocket);
     void StartFcgiProcess();
 
 private:
@@ -129,7 +129,7 @@ private:
     void OnNewConnection(const vector<TcpSocket*>& vNewConnections);
     void OnDataReceived(TcpSocket*);
     void OnSocketError(BaseSocket* const);
-    void OnSocketCloseing(BaseSocket* const);
+    void OnSocketClosing(BaseSocket* const);
 
 private:
     unique_ptr<TcpServer>    m_pSocket;

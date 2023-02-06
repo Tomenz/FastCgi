@@ -180,7 +180,7 @@ uint32_t FastCgiClient::Connect(const string strIpServer, uint16_t usPort, bool 
     m_pSocket->BindFuncConEstablished(static_cast<function<void(TcpSocket* const)>>(bind(&FastCgiClient::Connected, this, _1)));
     m_pSocket->BindFuncBytesReceived(static_cast<function<void(TcpSocket* const)>>(bind(&FastCgiClient::DatenEmpfangen, this, _1)));
     m_pSocket->BindErrorFunction(static_cast<function<void(BaseSocket* const)>>(bind(&FastCgiClient::SocketError, this, _1)));
-    m_pSocket->BindCloseFunction(static_cast<function<void(BaseSocket* const)>>(bind(&FastCgiClient::SocketCloseing, this, _1)));
+    m_pSocket->BindCloseFunction(static_cast<function<void(BaseSocket* const)>>(bind(&FastCgiClient::SocketClosing, this, _1)));
 
     m_bConnected = false;
 
@@ -371,7 +371,7 @@ void FastCgiClient::SocketError(BaseSocket* const pBaseSocket)
     pBaseSocket->Close();
 }
 
-void FastCgiClient::SocketCloseing(BaseSocket* const pBaseSocket)
+void FastCgiClient::SocketClosing(BaseSocket* const pBaseSocket)
 {
     if (m_bConnected == false)
     {
@@ -826,7 +826,7 @@ void FastCgiServer::OnNewConnection(const vector<TcpSocket*>& vNewConnections)
         {
             pSocket->BindFuncBytesReceived(static_cast<function<void(TcpSocket* const)>>(bind(&FastCgiServer::OnDataReceived, this, _1)));
             pSocket->BindErrorFunction(static_cast<function<void(BaseSocket* const)>>(bind(&FastCgiServer::OnSocketError, this, _1)));
-            pSocket->BindCloseFunction(static_cast<function<void(BaseSocket* const)>>(bind(&FastCgiServer::OnSocketCloseing, this, _1)));
+            pSocket->BindCloseFunction(static_cast<function<void(BaseSocket* const)>>(bind(&FastCgiServer::OnSocketClosing, this, _1)));
             vCache.push_back(pSocket);
         }
     }
@@ -1067,7 +1067,7 @@ void FastCgiServer::OnSocketError(BaseSocket* const pSocket)
     pSocket->Close();
 }
 
-void FastCgiServer::OnSocketCloseing(BaseSocket* const pSocket)
+void FastCgiServer::OnSocketClosing(BaseSocket* const pSocket)
 {
     m_mxConnections.lock();
     const auto itConnection = m_Connections.find(reinterpret_cast<TcpSocket*>(pSocket));
