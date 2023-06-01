@@ -45,10 +45,11 @@ protected:
 
 class FastCgiClient : public FastCgiBase
 {
-    typedef function<void(const unsigned char*, uint16_t)> FN_OUTPUT;
+    typedef function<void(const unsigned char*, uint16_t, void*)> FN_OUTPUT;
     typedef struct tagRequest
     {
         FN_OUTPUT           fnDataOutput;
+        void*               vpCbParam;
         condition_variable* pcvReqEnd;
         bool*               pbReqEnde;
         string              strRecBuf;
@@ -64,7 +65,7 @@ public:
 
     uint32_t Connect(const string strIpServer, uint16_t usPort, bool bSecondConnection = false);
     bool IsConnected() noexcept { return m_bConnected && m_cClosed == 0; }
-    uint16_t SendRequest(vector<pair<string, string>>& vCgiParam, condition_variable* pcvReqEnd, bool* pbReqEnde, FN_OUTPUT fnDataOutput);
+    uint16_t SendRequest(vector<pair<string, string>>& vCgiParam, condition_variable* pcvReqEnd, bool* pbReqEnde, FN_OUTPUT fnDataOutput, void* vpCbParam = nullptr);
     void SendRequestData(const uint16_t nRequestId, const char* szBuffer, const uint32_t nBufLen);
     bool AbortRequest(uint16_t nRequestId);
     bool IsFcgiProcessActiv(size_t nCount = 0);

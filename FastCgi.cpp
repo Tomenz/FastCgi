@@ -317,7 +317,7 @@ void FastCgiClient::DatenEmpfangen(TcpSocket* const pTcpSocket)
                 if (nContentLen > 0 && itReqParam != end(m_lstRequest) && itReqParam ->second.bIsAbort == false)
                 {
                     if (pHeader->type == FCGI_STDOUT)
-                        itReqParam->second.fnDataOutput(pContent, nContentLen);
+                        itReqParam->second.fnDataOutput(pContent, nContentLen, itReqParam->second.vpCbParam);
                     else
                         itReqParam->second.strRecBuf = string(reinterpret_cast<char*>(pContent), nContentLen);
                 }
@@ -340,7 +340,7 @@ void FastCgiClient::DatenEmpfangen(TcpSocket* const pTcpSocket)
                 if (itReqParam != end(m_lstRequest))
                 {
                     if (itReqParam->second.strRecBuf.empty() == false)
-                        itReqParam->second.fnDataOutput(reinterpret_cast<unsigned char*>(&itReqParam->second.strRecBuf[0]), static_cast<uint16_t>(itReqParam->second.strRecBuf.size()));
+                        itReqParam->second.fnDataOutput(reinterpret_cast<unsigned char*>(&itReqParam->second.strRecBuf[0]), static_cast<uint16_t>(itReqParam->second.strRecBuf.size()), itReqParam->second.vpCbParam);
 
                     if (itReqParam->second.pbReqEnde != nullptr)
                         *itReqParam->second.pbReqEnde = true;
@@ -398,7 +398,7 @@ void FastCgiClient::SocketClosing(BaseSocket* const pBaseSocket)
     m_cClosed |= 2;
 }
 
-uint16_t FastCgiClient::SendRequest(vector<pair<string, string>>& vCgiParam, condition_variable* pcvReqEnd, bool* pbReqEnde, FN_OUTPUT fnDataOutput)
+uint16_t FastCgiClient::SendRequest(vector<pair<string, string>>& vCgiParam, condition_variable* pcvReqEnd, bool* pbReqEnde, FN_OUTPUT fnDataOutput, void* vpCbParam/* = nullptr*/)
 {
     m_mxReqList.lock();
     if (IsConnected() == false || m_nCountCurRequest >= m_FCGI_MAX_REQS)
@@ -412,7 +412,7 @@ uint16_t FastCgiClient::SendRequest(vector<pair<string, string>>& vCgiParam, con
         m_usResquestId = 0;
     ++m_usResquestId;
 
-    m_lstRequest.emplace(m_usResquestId, REQPARAM({ fnDataOutput, pcvReqEnd, pbReqEnde, "", false }));
+    m_lstRequest.emplace(m_usResquestId, REQPARAM({ fnDataOutput, vpCbParam, pcvReqEnd, pbReqEnde, "", false }));
     m_mxReqList.unlock();
 
     auto uqBuf = make_unique<uint8_t[]>(4096);
