@@ -317,7 +317,7 @@ void FastCgiClient::DatenEmpfangen(TcpSocket* const pTcpSocket)
                 if (nContentLen > 0 && itReqParam != end(m_lstRequest) && itReqParam ->second.bIsAbort == false)
                 {
                     if (pHeader->type == FCGI_STDOUT)
-                        itReqParam->second.fnDataOutput(pContent, nContentLen, itReqParam->second.vpCbParam);
+                        itReqParam->second.fnDataOutput(nRequestId, pContent, nContentLen, itReqParam->second.vpCbParam);
                     else
                         itReqParam->second.strRecBuf = string(reinterpret_cast<char*>(pContent), nContentLen);
                 }
@@ -340,7 +340,7 @@ void FastCgiClient::DatenEmpfangen(TcpSocket* const pTcpSocket)
                 if (itReqParam != end(m_lstRequest))
                 {
                     if (itReqParam->second.strRecBuf.empty() == false)
-                        itReqParam->second.fnDataOutput(reinterpret_cast<unsigned char*>(&itReqParam->second.strRecBuf[0]), static_cast<uint16_t>(itReqParam->second.strRecBuf.size()), itReqParam->second.vpCbParam);
+                        itReqParam->second.fnDataOutput(nRequestId, reinterpret_cast<unsigned char*>(&itReqParam->second.strRecBuf[0]), static_cast<uint16_t>(itReqParam->second.strRecBuf.size()), itReqParam->second.vpCbParam);
 
                     if (itReqParam->second.pbReqEnde != nullptr)
                         *itReqParam->second.pbReqEnde = true;
