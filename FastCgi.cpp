@@ -413,15 +413,16 @@ uint16_t FastCgiClient::SendRequest(vector<pair<string, string>>& vCgiParam, con
     ++m_usResquestId;
 
     m_lstRequest.emplace(m_usResquestId, REQPARAM({ fnDataOutput, vpCbParam, pcvReqEnd, pbReqEnde, "", false }));
+    uint16_t nRetValue = m_usResquestId;
     m_mxReqList.unlock();
 
-    auto uqBuf = make_unique<uint8_t[]>(4096);
+    auto uqBuf = make_unique<uint8_t[]>(8192);
 
     // Start Record senden
     FCGI_BeginRequestRecord* pRecord = reinterpret_cast<FCGI_BeginRequestRecord*>(&uqBuf[0]);
     pRecord->header.version = 1;
     pRecord->header.type = FCGI_BEGIN_REQUEST;
-    FromShort(&pRecord->header.requestIdB1, m_usResquestId);
+    FromShort(&pRecord->header.requestIdB1, nRetValue);
     FromShort(&pRecord->header.contentLengthB1, sizeof(FCGI_BeginRequestBody));
     pRecord->header.paddingLength = 0;
     pRecord->header.reserved = 0;
@@ -441,7 +442,7 @@ uint16_t FastCgiClient::SendRequest(vector<pair<string, string>>& vCgiParam, con
     for (auto& item : vCgiParam)
     {
         nContentLen += AddNameValuePair(&pContent, item.first.c_str(), item.first.size(), item.second.c_str(), item.second.size());
-        if (nContentLen > 4000)
+        if (nContentLen > 8000)
         {
             break;
         }
@@ -454,8 +455,9 @@ uint16_t FastCgiClient::SendRequest(vector<pair<string, string>>& vCgiParam, con
     FromShort(&pHeader->contentLengthB1, 0);
     m_pSocket->Write(pHeader, sizeof(FCGI_Header));
 
-    return m_usResquestId;
+    return nRetValue;
 }
+
 void FastCgiClient::SendRequestData(const uint16_t nRequestId, const char* szBuffer, const uint32_t nBufLen)
 {
     uint32_t nMaxLen = min(nBufLen, static_cast<uint32_t>(0x7fff));
