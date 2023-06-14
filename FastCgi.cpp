@@ -385,6 +385,9 @@ void FastCgiClient::SocketClosing(BaseSocket* const pBaseSocket)
     m_mxReqList.lock();
     for (REQLIST::iterator iter = begin(m_lstRequest); iter != end(m_lstRequest); ++iter)
     {
+        if (iter->second.strRecBuf.empty() == false)
+            iter->second.fnDataOutput(iter->first, reinterpret_cast<unsigned char*>(&iter->second.strRecBuf[0]), static_cast<uint16_t>(iter->second.strRecBuf.size()), iter->second.vpCbParam);
+
         if (iter->second.pbReqEnde != nullptr)
             *iter->second.pbReqEnde = true;
         if (iter->second.pcvReqEnd != nullptr)
@@ -402,6 +405,12 @@ uint16_t FastCgiClient::SendRequest(vector<pair<string, string>>& vCgiParam, con
 {
     m_mxReqList.lock();
     if (IsConnected() == false || m_nCountCurRequest >= m_FCGI_MAX_REQS)
+    {
+        m_mxReqList.unlock();
+        return 0;
+    }
+
+    if (m_FCGI_MPXS_CONNS == 0 && m_lstRequest.size() > 0)
     {
         m_mxReqList.unlock();
         return 0;
