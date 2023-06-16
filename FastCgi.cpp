@@ -212,8 +212,9 @@ uint32_t FastCgiClient::Connect(const string strIpServer, uint16_t usPort, bool 
             nContentLen += AddNameValuePair(&pContent, FCGI_MPXS_CONNS, strlen(FCGI_MPXS_CONNS), "", 0);
 
             FromShort(&pHeader->contentLengthB1, nContentLen);
+            pHeader->paddingLength = (8 - (nContentLen % 8)) & 7;
 
-            m_pSocket->Write(&qBuf[0], sizeof(FCGI_Header) + nContentLen);
+            m_pSocket->Write(&qBuf[0], sizeof(FCGI_Header) + nContentLen + pHeader->paddingLength);
 
             // wait until the answer is here
             if (m_cvConnected.wait_for(lock, chrono::milliseconds(500), [&]() noexcept { return m_bConnected; }) == false)   // Timeout
@@ -255,7 +256,7 @@ void FastCgiClient::DatenEmpfangen(TcpSocket* const pTcpSocket)
 
     if (nRead > 0)
     {
-        nRead += static_cast<uint32_t>(m_strRecBuf.size());
+        nRead += m_strRecBuf.size();
         m_strRecBuf.clear();
         nAvailable = nRead;  // Merken
 
@@ -425,7 +426,7 @@ uint16_t FastCgiClient::SendRequest(vector<pair<string, string>>& vCgiParam, con
     uint16_t nRetValue = m_usResquestId;
     m_mxReqList.unlock();
 
-    auto uqBuf = make_unique<uint8_t[]>(8192);
+    auto uqBuf = make_unique<uint8_t[]>(16384);
 
     // Start Record senden
     FCGI_BeginRequestRecord* pRecord = reinterpret_cast<FCGI_BeginRequestRecord*>(&uqBuf[0]);
@@ -451,17 +452,20 @@ uint16_t FastCgiClient::SendRequest(vector<pair<string, string>>& vCgiParam, con
     for (auto& item : vCgiParam)
     {
         nContentLen += AddNameValuePair(&pContent, item.first.c_str(), item.first.size(), item.second.c_str(), item.second.size());
-        if (nContentLen > 8000)
+        if (nContentLen > 16300)
         {
             break;
         }
     }
 
     FromShort(&pHeader->contentLengthB1, nContentLen);
-    m_pSocket->Write(pHeader, sizeof(FCGI_Header) + nContentLen);
+    pHeader->paddingLength = (8 - (nContentLen % 8)) & 7;
+    std::fill_n(pContent, pHeader->paddingLength, 0);
+    m_pSocket->Write(pHeader, sizeof(FCGI_Header) + nContentLen + pHeader->paddingLength);
 
     // End of Header Record senden
     FromShort(&pHeader->contentLengthB1, 0);
+    pHeader->paddingLength = 0;
     m_pSocket->Write(pHeader, sizeof(FCGI_Header));
 
     return nRetValue;
@@ -470,7 +474,7 @@ uint16_t FastCgiClient::SendRequest(vector<pair<string, string>>& vCgiParam, con
 void FastCgiClient::SendRequestData(const uint16_t nRequestId, const char* szBuffer, const uint32_t nBufLen)
 {
     uint32_t nMaxLen = min(nBufLen, static_cast<uint32_t>(0x7fff));
-    auto uqBuf = make_unique<uint8_t[]>(nMaxLen + sizeof(FCGI_Header));
+    auto uqBuf = make_unique<uint8_t[]>(nMaxLen + sizeof(FCGI_Header) + 8);
 
     // Start Record senden
     FCGI_Header* pHeader = reinterpret_cast<FCGI_Header*>(&uqBuf[0]);
@@ -494,7 +498,9 @@ void FastCgiClient::SendRequestData(const uint16_t nRequestId, const char* szBuf
         nMaxLen = min(nMaxLen, nBufLen - nOffset);
         copy(szBuffer + nOffset, szBuffer + nOffset + nMaxLen, pDataContent);
         FromShort(&pHeader->contentLengthB1, static_cast<uint16_t>(nMaxLen));
-        m_pSocket->Write(&uqBuf[0], sizeof(FCGI_Header) + nMaxLen);
+        pHeader->paddingLength = (8 - (nMaxLen % 8)) & 7;
+        std::fill_n(pDataContent + nMaxLen, pHeader->paddingLength, 0);
+        m_pSocket->Write(&uqBuf[0], sizeof(FCGI_Header) + nMaxLen + pHeader->paddingLength);
         nOffset += nMaxLen;
     }
 }
@@ -886,14 +892,14 @@ void FastCgiServer::OnDataReceived(TcpSocket* pSocket)
 
                 const auto itRequest = itConnection->second.find(nRequestId); // Get the Request from the Request ID
 
-                if (nRead < sizeof(FCGI_Header) + nContentLen)
+                if (nRead < sizeof(FCGI_Header) + nContentLen + nPaddingLen)
                 {
                     pSocket->PutBackRead(pHeader, nRead);
                     m_mxConnections.unlock();
                     return;
                 }
 
-                nRead -= sizeof(FCGI_Header) + nContentLen;
+                nRead -= sizeof(FCGI_Header) + nContentLen + nPaddingLen;
 
                 switch (pHeader->type)
                 {
@@ -932,8 +938,9 @@ void FastCgiServer::OnDataReceived(TcpSocket* pSocket)
                         }
                         FromShort(&pNewHeader->contentLengthB1, nContentLen);
                         pNewHeader->type = FCGI_GET_VALUES_RESULT;
-
-                        pSocket->Write(&spBufWrite[0], sizeof(FCGI_Header) + nContentLen);
+                        pNewHeader->paddingLength = (8 - (nContentLen % 8)) & 7;
+                        std::fill_n(pContent, pNewHeader->paddingLength, 0);
+                        pSocket->Write(&spBufWrite[0], sizeof(FCGI_Header) + nContentLen + pNewHeader->paddingLength);
                     }
                     pHeader = pNextHeader;
                     break;
@@ -967,8 +974,8 @@ void FastCgiServer::OnDataReceived(TcpSocket* pSocket)
                         itRequest->second.obuf = make_shared<streambuf*>(make_callback_ostreambuf([&](const void* buf, std::streamsize sz, void* user_data1, void* user_data2) -> std::streamsize
                         {
                             TcpSocket* pSock = reinterpret_cast<TcpSocket*>(user_data2);
-                            string strSendBuffer(sizeof(FCGI_Header), 0);
-                            FCGI_Header* pHeader = reinterpret_cast<FCGI_Header*>(&strSendBuffer[0]);
+                            auto pSendBuffer = make_unique<uint8_t[]>(sizeof(FCGI_Header) + 16368 + 8);
+                            FCGI_Header* pHeader = reinterpret_cast<FCGI_Header*>(&pSendBuffer[0]);
                             pHeader->version = 1;
                             pHeader->type = FCGI_STDOUT;
                             FromShort(&pHeader->requestIdB1, static_cast<uint16_t>(reinterpret_cast<size_t>(user_data1)));
@@ -980,10 +987,12 @@ void FastCgiServer::OnDataReceived(TcpSocket* pSocket)
 
                             while (nAnzahl - nOffset != 0)
                             {
-                                const uint16_t sSend = static_cast<uint16_t>(min(nAnzahl - nOffset, static_cast<size_t>(16368)));
+                                const uint16_t sSend = static_cast<uint16_t>(std::min(nAnzahl - nOffset, static_cast<size_t>(16368)));
                                 FromShort(&pHeader->contentLengthB1, sSend);
-                                pSock->Write(pHeader, sizeof(FCGI_Header));
-                                pSock->Write(reinterpret_cast<const char*>(buf) + nOffset, sSend);
+                                pHeader->paddingLength = (8 - (sSend % 8)) & 7;
+                                std::copy_n(reinterpret_cast<const uint8_t*>(buf) + nOffset, sSend, &pSendBuffer[sizeof(FCGI_Header)]);
+                                std::fill_n(&pSendBuffer[sizeof(FCGI_Header) + sSend], pHeader->paddingLength, 0);
+                                pSock->Write(&pSendBuffer[0], sizeof(FCGI_Header) + sSend + pHeader->paddingLength);
                                 nOffset += sSend;
                             }
 
