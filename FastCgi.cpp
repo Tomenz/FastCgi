@@ -171,7 +171,6 @@ FastCgiClient::~FastCgiClient() noexcept
 
 uint32_t FastCgiClient::Connect(const string strIpServer, uint16_t usPort, bool bSecondConnection/* = false*/)
 {
-
     while ((m_cClosed & 2) != 2)
         this_thread::sleep_for(chrono::milliseconds(10));
 
