@@ -528,6 +528,15 @@ bool FastCgiClient::AbortRequest(uint16_t nRequestId)
     return true;
 }
 
+void FastCgiClient::RemoveRequest(uint16_t nRequestId)
+{
+    m_mxReqList.lock();
+    const auto itReqParam = m_lstRequest.find(nRequestId);
+    if (itReqParam != end(m_lstRequest))
+        m_lstRequest.erase(itReqParam);
+    m_mxReqList.unlock();
+}
+
 void FastCgiClient::StartFcgiProcess()
 {
 #if defined(_WIN32) || defined(_WIN64)

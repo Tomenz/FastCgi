@@ -68,6 +68,7 @@ public:
     uint16_t SendRequest(vector<pair<string, string>>& vCgiParam, condition_variable* pcvReqEnd, bool* pbReqEnde, FN_OUTPUT fnDataOutput, void* vpCbParam = nullptr);
     void SendRequestData(const uint16_t nRequestId, const char* szBuffer, const uint32_t nBufLen);
     bool AbortRequest(uint16_t nRequestId);
+    void RemoveRequest(uint16_t nRequestId);
     bool IsFcgiProcessActiv(size_t nCount = 0);
 
 private:
