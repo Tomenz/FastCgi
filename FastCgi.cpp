@@ -280,8 +280,8 @@ void FastCgiClient::DatenEmpfangen(TcpSocket* const pTcpSocket)
 
                 while (nContentLen != 0)
                 {
-                    uint32_t nVarNameLen = ToNumber(&pContent, nContentLen);
-                    uint32_t nVarValueLen = ToNumber(&pContent, nContentLen);
+                    const uint32_t nVarNameLen = ToNumber(&pContent, nContentLen);
+                    const uint32_t nVarValueLen = ToNumber(&pContent, nContentLen);
                     string strVarName, strVarValue;
                     if (nVarNameLen > 0)
                         strVarName = string(reinterpret_cast<char*>(pContent), nVarNameLen), pContent += nVarNameLen, nContentLen -= static_cast<uint16_t>(nVarNameLen);
@@ -309,7 +309,7 @@ void FastCgiClient::DatenEmpfangen(TcpSocket* const pTcpSocket)
             }
             else if ((pHeader->type == FCGI_STDOUT || pHeader->type == FCGI_STDERR) && nRequestId != 0)
             {
-                uint16_t nContentLen = ToShort(&pHeader->contentLengthB1);
+                const uint16_t nContentLen = ToShort(&pHeader->contentLengthB1);
                 unsigned char* pContent = reinterpret_cast<unsigned char*>(pHeader) + sizeof(FCGI_Header);
 
                 if (sizeof(FCGI_Header) + nContentLen + pHeader->paddingLength > nRead)
@@ -423,7 +423,7 @@ uint16_t FastCgiClient::SendRequest(vector<pair<string, string>>& vCgiParam, con
     ++m_usResquestId;
 
     m_lstRequest.emplace(m_usResquestId, REQPARAM({ fnDataOutput, vpCbParam, pcvReqEnd, pbReqEnde, "", false }));
-    uint16_t nRetValue = m_usResquestId;
+    const uint16_t nRetValue = m_usResquestId;
     m_mxReqList.unlock();
 
     auto uqBuf = make_unique<uint8_t[]>(16384);
@@ -788,7 +788,7 @@ protected:
         setg(&get<0>(m_vBuffers.front())[0], &get<0>(m_vBuffers.front())[0], &get<0>(m_vBuffers.front())[get<1>(m_vBuffers.front())]);
         setp(&get<0>(m_vBuffers.front())[0], &get<0>(m_vBuffers.front())[get<1>(m_vBuffers.front())]);
 
-        int_type nRet = traits_type::to_int_type(*gptr());
+        const int_type nRet = traits_type::to_int_type(*gptr());
         return nRet;
     }
 
@@ -893,9 +893,9 @@ void FastCgiServer::OnDataReceived(TcpSocket* pSocket)
 
             while (nRead > 0)
             {
-                uint16_t nRequestId = ToShort(&pHeader->requestIdB1);
+                const uint16_t nRequestId = ToShort(&pHeader->requestIdB1);
                 uint16_t nContentLen = ToShort(&pHeader->contentLengthB1);
-                uint8_t nPaddingLen = pHeader->paddingLength;
+                const uint8_t nPaddingLen = pHeader->paddingLength;
                 uint8_t* pContent = reinterpret_cast<uint8_t*>(pHeader) + sizeof(FCGI_Header);
                 FCGI_Header* pNextHeader = reinterpret_cast<FCGI_Header*>(pContent + nContentLen + nPaddingLen);
 
@@ -923,9 +923,9 @@ void FastCgiServer::OnDataReceived(TcpSocket* pSocket)
                         vector<string> vstrVariablen;
                         while (nContentLen != 0)
                         {
-                            uint32_t nVarNameLen = ToNumber(&pContent, nContentLen);
-                            uint32_t nVarValueLen = ToNumber(&pContent, nContentLen);
-                            string strVarName, strVarValue;
+                            const uint32_t nVarNameLen = ToNumber(&pContent, nContentLen);
+                            const uint32_t nVarValueLen = ToNumber(&pContent, nContentLen);
+                            const string strVarName, strVarValue;
                             if (nVarNameLen > 0)
                                 vstrVariablen.push_back(string(reinterpret_cast<char*>(pContent), nVarNameLen)), pContent += nVarNameLen, nContentLen -= static_cast<uint16_t>(nVarNameLen);
                             pContent += nVarValueLen, nContentLen -= static_cast<uint16_t>(nVarValueLen);
@@ -1021,8 +1021,8 @@ void FastCgiServer::OnDataReceived(TcpSocket* pSocket)
                     {
                         while (nContentLen != 0)
                         {
-                            uint32_t nVarNameLen = ToNumber(&pContent, nContentLen);
-                            uint32_t nVarValueLen = ToNumber(&pContent, nContentLen);
+                            const uint32_t nVarNameLen = ToNumber(&pContent, nContentLen);
+                            const uint32_t nVarValueLen = ToNumber(&pContent, nContentLen);
                             string strVarName, strVarValue;
                             if (nVarNameLen > 0)
                                 strVarName = string(reinterpret_cast<char*>(pContent), nVarNameLen), pContent += nVarNameLen, nContentLen -= static_cast<uint16_t>(nVarNameLen);
