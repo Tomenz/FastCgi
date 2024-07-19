@@ -980,7 +980,7 @@ void FastCgiServer::OnDataReceived(TcpSocket* pSocket)
                     {
                         itRequest->second.nState++;
 
-                        itRequest->second.obuf = make_shared<streambuf*>(make_callback_ostreambuf([&](const void* buf, std::streamsize sz, void* user_data1, void* user_data2) -> std::streamsize
+                        itRequest->second.obuf = make_unique<streambuf*>(make_callback_ostreambuf([&](const void* buf, std::streamsize sz, void* user_data1, void* user_data2) -> std::streamsize
                         {
                             TcpSocket* pSock = reinterpret_cast<TcpSocket*>(user_data2);
                             auto pSendBuffer = make_unique<uint8_t[]>(sizeof(FCGI_Header) + 16368 + 8);
@@ -1009,9 +1009,9 @@ void FastCgiServer::OnDataReceived(TcpSocket* pSocket)
                             return sz; // return the numbers of characters written.
                         }, reinterpret_cast<void*>(nRequestId), pSocket));
 
-                        itRequest->second.streamOut = make_shared<ostream*>(new ostream(*itRequest->second.obuf.get())); //ostr << "TEST " << 42; // Write string and integer
-                        itRequest->second.ibuf = make_shared<streambuf*>(new StreamInBuffer());
-                        itRequest->second.stremIn = make_shared<iostream*>(new iostream(*itRequest->second.ibuf.get()));
+                        itRequest->second.streamOut = make_unique<ostream*>(new ostream(*itRequest->second.obuf.get())); //ostr << "TEST " << 42; // Write string and integer
+                        itRequest->second.ibuf = make_unique<streambuf*>(new StreamInBuffer());
+                        itRequest->second.stremIn = make_unique<iostream*>(new iostream(*itRequest->second.ibuf.get()));
                         itRequest->second.thDoAction = thread([&](PARAMETERLIST& lstParameter, ostream* outStream, istream* inStream)
                         {
                             m_fnDoAction(lstParameter, *outStream, *inStream);

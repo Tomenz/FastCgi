@@ -105,11 +105,11 @@ class FastCgiServer : public FastCgiBase
         uint32_t nState;
         PARAMETERLIST lstParameter;
         string strBuffer;
-        shared_ptr<streambuf*> obuf;
-        shared_ptr<ostream*> streamOut;
+        unique_ptr<streambuf*> obuf;
+        unique_ptr<ostream*> streamOut;
         //istringstream stremIn;
-        shared_ptr<streambuf*> ibuf;
-        shared_ptr<iostream*> stremIn;
+        unique_ptr<streambuf*> ibuf;
+        unique_ptr<iostream*> stremIn;
         thread thDoAction;
     }REQUESTPARAM;
     //typedef tuple<uint32_t, PARAMETERLIST, string> REQUESTPARAM;  // State, Liste mit Parameter, Daten (post)
