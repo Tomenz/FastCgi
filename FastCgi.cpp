@@ -540,7 +540,7 @@ void FastCgiClient::RemoveRequest(uint16_t nRequestId)
 void FastCgiClient::StartFcgiProcess()
 {
 #if defined(_WIN32) || defined(_WIN64)
-    STARTUPINFO stInfo = { 0 };
+    STARTUPINFO stInfo{};
     PROCESS_INFORMATION ProcInfo = { nullptr, nullptr, 0, 0 };
     stInfo.cb = sizeof(STARTUPINFO);
     stInfo.dwFlags = STARTF_USESHOWWINDOW;
