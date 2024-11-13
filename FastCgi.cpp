@@ -12,7 +12,9 @@
 
 // http://www.mit.edu/~yandros/doc/specs/fcgi-spec.html
 
+#if !defined(NOMINMAX)
 #define NOMINMAX
+#endif
 #include <fstream>
 #include <algorithm>
 
