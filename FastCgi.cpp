@@ -317,7 +317,7 @@ void FastCgiClient::DatenEmpfangen(TcpSocket* const pTcpSocket)
                 if (sizeof(FCGI_Header) + nContentLen + pHeader->paddingLength > nRead)
                     break;
 
-                if (nContentLen > 0 && itReqParam != end(m_lstRequest) && itReqParam ->second.bIsAbort == false)
+                if (nContentLen > 0 && itReqParam != end(m_lstRequest) && itReqParam->second.bIsAbort == false)
                 {
                     if (pHeader->type == FCGI_STDOUT)
                         itReqParam->second.fnDataOutput(nRequestId, pContent, nContentLen, itReqParam->second.vpCbParam);
